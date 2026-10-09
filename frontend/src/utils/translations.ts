@@ -48,6 +48,12 @@ export interface TranslationDict {
     timePending: string;
     btnViewAll: string;
     concludedMsg: string;
+    materialsHeading: string;
+    committeeMaterialsHeading: string;
+    whoCanParticipateHeading: string;
+    whatToBringHeading: string;
+    participantsHeading: string;
+    noMaterialsMsg: string;
   };
   schedule: {
     badge: string;
@@ -123,6 +129,12 @@ export interface TranslationDict {
     timePending: string;
     couplesPending: string;
     btnClose: string;
+    materialsHeading: string;
+    committeeMaterialsHeading: string;
+    whoCanParticipateHeading: string;
+    whatToBringHeading: string;
+    participantsHeading: string;
+    noMaterialsMsg: string;
   };
   login: {
     backHome: string;
@@ -270,6 +282,12 @@ export const translations: Record<Language, TranslationDict> = {
       timePending: 'సమయం త్వరలో',
       btnViewAll: 'పూర్తి కార్యక్రమాల ప్రణాళిక చూడండి',
       concludedMsg: '31వ దేవీ శరన్నవరాత్రి మహోత్సవములు విజయవంతంగా ముగిసినవి. ఉత్సవ చిత్రమాలిక మరియు విరాళాల వివరాలను దిగువన చూడవచ్చు.',
+      materialsHeading: 'తీసుకురావలసిన పూజా సామగ్రి',
+      committeeMaterialsHeading: 'కమిటీ ద్వారా అందించబడునవి',
+      whoCanParticipateHeading: 'ఎవరు పాల్గొనవచ్చు',
+      whatToBringHeading: 'తీసుకురావలసిన పూజా సామగ్రి',
+      participantsHeading: 'పూజా భక్తులు / పాల్గొనేవారు',
+      noMaterialsMsg: 'పూజా సామగ్రి వివరాలు త్వరలో తెలియజేస్తాము.',
     },
     schedule: {
       badge: 'సంపూర్ణ ప్రణాళిక',
@@ -345,6 +363,12 @@ export const translations: Record<Language, TranslationDict> = {
       timePending: 'సమయాలు త్వరలో తెలియజేస్తాము.',
       couplesPending: 'ఈ దినము దంపతుల వివరాలు నవీకరించబడుతున్నాయి.',
       btnClose: 'ముగించు (Close)',
+      materialsHeading: 'తీసుకురావలసిన పూజా సామగ్రి',
+      committeeMaterialsHeading: 'కమిటీ ద్వారా అందించబడునవి',
+      whoCanParticipateHeading: 'ఎవరు పాల్గొనవచ్చు',
+      whatToBringHeading: 'తీసుకురావలసిన పూజా సామగ్రి',
+      participantsHeading: 'పూజా భక్తులు / పాల్గొనేవారు',
+      noMaterialsMsg: 'పూజా సామగ్రి వివరాలు త్వరలో తెలియజేస్తాము.',
     },
     login: {
       backHome: 'ముఖద్వారానికి తిరిగి వెళ్లండి',
@@ -490,6 +514,12 @@ export const translations: Record<Language, TranslationDict> = {
       timePending: 'Time to be announced',
       btnViewAll: 'View Full Schedule',
       concludedMsg: 'The 31st Devi Sharannavaratri Mahotsavam has concluded with divine blessings. Devotees can view the festival gallery and donations below.',
+      materialsHeading: 'Puja Materials to Bring',
+      committeeMaterialsHeading: 'Provided by the Committee',
+      whoCanParticipateHeading: 'Who Can Participate',
+      whatToBringHeading: 'What to Bring',
+      participantsHeading: 'Pooja Participants',
+      noMaterialsMsg: 'Materials requirements will be announced soon.',
     },
     schedule: {
       badge: 'Full Schedule',
@@ -565,6 +595,12 @@ export const translations: Record<Language, TranslationDict> = {
       timePending: 'Timings will be updated soon.',
       couplesPending: 'Couple details for this day are being updated.',
       btnClose: 'Close',
+      materialsHeading: 'Puja Materials to Bring',
+      committeeMaterialsHeading: 'Provided by the Committee',
+      whoCanParticipateHeading: 'Who Can Participate',
+      whatToBringHeading: 'What to Bring',
+      participantsHeading: 'Pooja Participants',
+      noMaterialsMsg: 'Materials requirements will be announced soon.',
     },
     login: {
       backHome: 'Back to Home',

@@ -324,8 +324,9 @@ class FestivalDay(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    activities = relationship("ProgrammeActivity", back_populates="festival_day", cascade="all, delete-orphan")
-    pooja_couples = relationship("PoojaCouple", back_populates="festival_day", cascade="all, delete-orphan")
+    activities = relationship("ProgrammeActivity", back_populates="festival_day", cascade="all, delete-orphan", order_by="ProgrammeActivity.display_order.asc()")
+    pooja_couples = relationship("PoojaCouple", back_populates="festival_day", cascade="all, delete-orphan", order_by="PoojaCouple.display_order.asc()")
+    puja_materials = relationship("DayPujaMaterial", back_populates="festival_day", cascade="all, delete-orphan", order_by="DayPujaMaterial.display_order.asc()")
     photos = relationship("DayPhoto", back_populates="festival_day")
 
 
@@ -342,7 +343,20 @@ class ProgrammeActivity(Base):
     display_order = Column(Integer, default=0)
     is_published = Column(Boolean, default=True)
 
+    # Special Pujas & Extended Participation fields
+    allowed_participation_types = Column(String(255), nullable=True)  # e.g. "COUPLE,INDIVIDUAL,FAMILY,OPEN_TO_ALL"
+    who_can_participate_telugu = Column(Text, nullable=True)
+    who_can_participate_english = Column(Text, nullable=True)
+    participation_instructions_telugu = Column(Text, nullable=True)
+    participation_instructions_english = Column(Text, nullable=True)
+    what_to_bring_telugu = Column(Text, nullable=True)
+    what_to_bring_english = Column(Text, nullable=True)
+    arrival_instructions_telugu = Column(Text, nullable=True)
+    arrival_instructions_english = Column(Text, nullable=True)
+
     festival_day = relationship("FestivalDay", back_populates="activities")
+    puja_materials = relationship("DayPujaMaterial", back_populates="activity")
+    participants = relationship("PoojaCouple", back_populates="activity")
 
 
 class PoojaCouple(Base):
@@ -351,14 +365,46 @@ class PoojaCouple(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     festival_day_id = Column(String(36), ForeignKey("festival_days.id", ondelete="CASCADE"), nullable=False)
     programme_activity_id = Column(String(36), ForeignKey("programme_activities.id", ondelete="SET NULL"), nullable=True)
+    participant_type = Column(String(50), default="COUPLE", nullable=False)  # COUPLE, INDIVIDUAL, FAMILY, OPEN_TO_ALL
     person1_name = Column(String(255), nullable=False)
+    person1_name_telugu = Column(String(255), nullable=True)
     person2_name = Column(String(255), nullable=True)
+    person2_name_telugu = Column(String(255), nullable=True)
     family_display_name = Column(String(255), nullable=True)
+    family_display_name_telugu = Column(String(255), nullable=True)
     display_order = Column(Integer, default=0)
     is_published = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     festival_day = relationship("FestivalDay", back_populates="pooja_couples")
+    activity = relationship("ProgrammeActivity", back_populates="participants")
+
+
+class DayPujaMaterial(Base):
+    __tablename__ = "day_puja_materials"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    festival_day_id = Column(String(36), ForeignKey("festival_days.id", ondelete="CASCADE"), nullable=False)
+    programme_activity_id = Column(String(36), ForeignKey("programme_activities.id", ondelete="SET NULL"), nullable=True)
+
+    item_name_telugu = Column(String(255), nullable=False)
+    item_name_english = Column(String(255), nullable=True)
+    quantity = Column(String(50), nullable=True)
+    unit = Column(String(50), nullable=True)
+    unit_telugu = Column(String(50), nullable=True)
+    instructions_telugu = Column(Text, nullable=True)
+    instructions_english = Column(Text, nullable=True)
+
+    provided_by = Column(String(50), default="DEVOTEES", nullable=False)  # DEVOTEES or COMMITTEE
+    display_order = Column(Integer, default=0)
+    is_published = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    festival_day = relationship("FestivalDay", back_populates="puja_materials")
+    activity = relationship("ProgrammeActivity", back_populates="puja_materials")
+
 
 
 class DayPhoto(Base):

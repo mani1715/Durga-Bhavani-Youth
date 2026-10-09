@@ -8,19 +8,30 @@ from app.core.database import get_db
 from app.core.security import get_current_user, RoleChecker
 from app.models.db_models import (
     User, Organization, Event, FestivalDay, ProgrammeActivity, PoojaCouple, 
-    DayPhoto, Announcement, Sponsor, Receipt
+    DayPhoto, Announcement, Sponsor, Receipt, DayPujaMaterial
 )
 from app.services.storage import get_storage_service
 from app.services.audit import write_audit_log
+from app.services.transliteration import suggest_telugu_text
 
 router = APIRouter(prefix="/festival-admin", tags=["Festival Admin Management"])
 
 admin_or_operator = RoleChecker(["SUPER_ADMIN", "ORG_ADMIN", "OPERATOR"])
 admin_only = RoleChecker(["SUPER_ADMIN", "ORG_ADMIN"])
 
+@router.post("/suggest-telugu")
+def get_telugu_suggestion(
+    payload: dict,
+    current_user: User = Depends(admin_or_operator)
+):
+    text = payload.get("text", "")
+    context = payload.get("context", "name")  # name, material, instruction, general
+    return suggest_telugu_text(text, context)
+
 # -------------------------------------------------------------
 # 1. FESTIVAL SETTINGS & COMMITTEE CONTACTS
 # -------------------------------------------------------------
+
 
 @router.get("/settings")
 def get_festival_settings(
@@ -94,7 +105,7 @@ def upload_hero_photo(
         action="UPDATE_HERO_PHOTO",
         entity_type="Organization",
         entity_id=org.id,
-        new_val={"banner_image_url": public_url}
+        new_value={"banner_image_url": public_url}
     )
 
     return {
@@ -134,7 +145,7 @@ def upload_logo_photo(
         action="UPDATE_LOGO_PHOTO",
         entity_type="Organization",
         entity_id=org.id,
-        new_val={"logo": public_url}
+        new_value={"logo": public_url}
     )
 
     return {
@@ -172,7 +183,7 @@ def update_festival_settings(
         action="UPDATE_SETTINGS", 
         entity_type="Organization", 
         entity_id=org.id,
-        new_val={"festival_name": org.festival_name, "contact_number": org.contact_number}
+        new_value={"festival_name": org.festival_name, "contact_number": org.contact_number}
     )
     
     return {"message": "Settings updated successfully", "org_id": org.id}
@@ -272,7 +283,17 @@ def add_programme_activity(
         time_str_english=payload.get("time_str_english", "").strip() or None,
         activity_type=payload.get("activity_type", "RITUAL"),
         display_order=int(payload.get("display_order", max_order)),
-        is_published=bool(payload.get("is_published", True))
+        is_published=bool(payload.get("is_published", True)),
+        # Special Pujas & Extended Participation Fields
+        allowed_participation_types=payload.get("allowed_participation_types", "").strip() or None,
+        who_can_participate_telugu=payload.get("who_can_participate_telugu", "").strip() or None,
+        who_can_participate_english=payload.get("who_can_participate_english", "").strip() or None,
+        participation_instructions_telugu=payload.get("participation_instructions_telugu", "").strip() or None,
+        participation_instructions_english=payload.get("participation_instructions_english", "").strip() or None,
+        what_to_bring_telugu=payload.get("what_to_bring_telugu", "").strip() or None,
+        what_to_bring_english=payload.get("what_to_bring_english", "").strip() or None,
+        arrival_instructions_telugu=payload.get("arrival_instructions_telugu", "").strip() or None,
+        arrival_instructions_english=payload.get("arrival_instructions_english", "").strip() or None,
     )
     db.add(act)
     db.commit()
@@ -304,6 +325,26 @@ def update_programme_activity(
         act.display_order = int(payload["display_order"])
     if "is_published" in payload:
         act.is_published = bool(payload["is_published"])
+
+    # Extended participation fields
+    if "allowed_participation_types" in payload:
+        act.allowed_participation_types = payload["allowed_participation_types"]
+    if "who_can_participate_telugu" in payload:
+        act.who_can_participate_telugu = payload["who_can_participate_telugu"]
+    if "who_can_participate_english" in payload:
+        act.who_can_participate_english = payload["who_can_participate_english"]
+    if "participation_instructions_telugu" in payload:
+        act.participation_instructions_telugu = payload["participation_instructions_telugu"]
+    if "participation_instructions_english" in payload:
+        act.participation_instructions_english = payload["participation_instructions_english"]
+    if "what_to_bring_telugu" in payload:
+        act.what_to_bring_telugu = payload["what_to_bring_telugu"]
+    if "what_to_bring_english" in payload:
+        act.what_to_bring_english = payload["what_to_bring_english"]
+    if "arrival_instructions_telugu" in payload:
+        act.arrival_instructions_telugu = payload["arrival_instructions_telugu"]
+    if "arrival_instructions_english" in payload:
+        act.arrival_instructions_english = payload["arrival_instructions_english"]
 
     db.commit()
     return act
@@ -350,10 +391,11 @@ def delete_programme_activity(
     return {"message": "Activity deleted"}
 
 # -------------------------------------------------------------
-# 3. POOJA COUPLES MANAGEMENT
+# 3. POOJA PARTICIPANTS / COUPLES MANAGEMENT
 # -------------------------------------------------------------
 
 @router.get("/days/{day_id}/pooja-couples")
+@router.get("/days/{day_id}/participants")
 def get_pooja_couples(
     day_id: str,
     db: Session = Depends(get_db),
@@ -362,6 +404,7 @@ def get_pooja_couples(
     return db.query(PoojaCouple).filter(PoojaCouple.festival_day_id == day_id).order_by(PoojaCouple.display_order.asc()).all()
 
 @router.post("/days/{day_id}/pooja-couples")
+@router.post("/days/{day_id}/participants")
 def add_pooja_couple(
     day_id: str,
     payload: dict,
@@ -374,18 +417,34 @@ def add_pooja_couple(
 
     couple = PoojaCouple(
         festival_day_id=day_id,
+        programme_activity_id=payload.get("programme_activity_id") or None,
+        participant_type=payload.get("participant_type", "COUPLE"),
         person1_name=p1,
+        person1_name_telugu=payload.get("person1_name_telugu", "").strip() or None,
         person2_name=payload.get("person2_name", "").strip() or None,
+        person2_name_telugu=payload.get("person2_name_telugu", "").strip() or None,
         family_display_name=payload.get("family_display_name", "").strip() or None,
+        family_display_name_telugu=payload.get("family_display_name_telugu", "").strip() or None,
         display_order=int(payload.get("display_order", 0)),
         is_published=bool(payload.get("is_published", True))
     )
     db.add(couple)
     db.commit()
     db.refresh(couple)
+
+    write_audit_log(
+        db,
+        org_id=current_user.organization_id,
+        user_id=current_user.id,
+        action="ADD_PARTICIPANT",
+        entity_type="PoojaCouple",
+        entity_id=couple.id,
+        new_value={"person1_name": couple.person1_name, "participant_type": couple.participant_type}
+    )
     return couple
 
 @router.put("/pooja-couples/{couple_id}")
+@router.put("/participants/{couple_id}")
 def update_pooja_couple(
     couple_id: str,
     payload: dict,
@@ -394,14 +453,24 @@ def update_pooja_couple(
 ):
     couple = db.query(PoojaCouple).filter(PoojaCouple.id == couple_id).first()
     if not couple:
-        raise HTTPException(status_code=404, detail="Couple entry not found")
+        raise HTTPException(status_code=404, detail="Participant entry not found")
 
+    if "participant_type" in payload:
+        couple.participant_type = payload["participant_type"]
+    if "programme_activity_id" in payload:
+        couple.programme_activity_id = payload["programme_activity_id"] or None
     if "person1_name" in payload:
         couple.person1_name = payload["person1_name"]
+    if "person1_name_telugu" in payload:
+        couple.person1_name_telugu = payload["person1_name_telugu"]
     if "person2_name" in payload:
         couple.person2_name = payload["person2_name"]
+    if "person2_name_telugu" in payload:
+        couple.person2_name_telugu = payload["person2_name_telugu"]
     if "family_display_name" in payload:
         couple.family_display_name = payload["family_display_name"]
+    if "family_display_name_telugu" in payload:
+        couple.family_display_name_telugu = payload["family_display_name_telugu"]
     if "display_order" in payload:
         couple.display_order = int(payload["display_order"])
     if "is_published" in payload:
@@ -411,6 +480,7 @@ def update_pooja_couple(
     return couple
 
 @router.delete("/pooja-couples/{couple_id}")
+@router.delete("/participants/{couple_id}")
 def delete_pooja_couple(
     couple_id: str,
     db: Session = Depends(get_db),
@@ -418,10 +488,203 @@ def delete_pooja_couple(
 ):
     couple = db.query(PoojaCouple).filter(PoojaCouple.id == couple_id).first()
     if not couple:
-        raise HTTPException(status_code=404, detail="Couple entry not found")
+        raise HTTPException(status_code=404, detail="Participant entry not found")
     db.delete(couple)
     db.commit()
-    return {"message": "Pooja couple deleted"}
+    return {"message": "Participant entry deleted"}
+
+# -------------------------------------------------------------
+# 4. DAY-WISE PUJA MATERIALS (పూజా సామగ్రి)
+# -------------------------------------------------------------
+
+@router.get("/days/{day_id}/materials")
+def get_day_puja_materials(
+    day_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    org_id = current_user.organization_id
+    materials = db.query(DayPujaMaterial).filter(
+        DayPujaMaterial.festival_day_id == day_id,
+        DayPujaMaterial.organization_id == org_id
+    ).order_by(DayPujaMaterial.display_order.asc(), DayPujaMaterial.created_at.asc()).all()
+
+    return [
+        {
+            "id": m.id,
+            "festival_day_id": m.festival_day_id,
+            "programme_activity_id": m.programme_activity_id,
+            "item_name_telugu": m.item_name_telugu,
+            "item_name_english": m.item_name_english,
+            "quantity": m.quantity,
+            "unit": m.unit,
+            "unit_telugu": m.unit_telugu,
+            "instructions_telugu": m.instructions_telugu,
+            "instructions_english": m.instructions_english,
+            "provided_by": m.provided_by,
+            "display_order": m.display_order,
+            "is_published": m.is_published,
+            "created_at": m.created_at.isoformat() if m.created_at else None
+        } for m in materials
+    ]
+
+@router.post("/days/{day_id}/materials")
+def add_day_puja_material(
+    day_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_operator)
+):
+    org_id = current_user.organization_id
+    day = db.query(FestivalDay).filter(FestivalDay.id == day_id, FestivalDay.organization_id == org_id).first()
+    if not day:
+        raise HTTPException(status_code=404, detail="Festival day not found or unauthorized")
+
+    item_telugu = payload.get("item_name_telugu", "").strip()
+    if not item_telugu:
+        raise HTTPException(status_code=400, detail="Puja material item name in Telugu is required (తెలుగు పేరు తప్పనిసరి)")
+
+    max_order = db.query(DayPujaMaterial).filter(
+        DayPujaMaterial.festival_day_id == day_id,
+        DayPujaMaterial.organization_id == org_id
+    ).count()
+
+    material = DayPujaMaterial(
+        organization_id=org_id,
+        festival_day_id=day_id,
+        programme_activity_id=payload.get("programme_activity_id") or None,
+        item_name_telugu=item_telugu,
+        item_name_english=payload.get("item_name_english", "").strip() or None,
+        quantity=payload.get("quantity", "").strip() or None,
+        unit=payload.get("unit", "").strip() or None,
+        unit_telugu=payload.get("unit_telugu", "").strip() or None,
+        instructions_telugu=payload.get("instructions_telugu", "").strip() or None,
+        instructions_english=payload.get("instructions_english", "").strip() or None,
+        provided_by=payload.get("provided_by", "DEVOTEES"),
+        display_order=int(payload.get("display_order", max_order)),
+        is_published=bool(payload.get("is_published", True))
+    )
+    db.add(material)
+    db.commit()
+    db.refresh(material)
+
+    write_audit_log(
+        db,
+        org_id=org_id,
+        user_id=current_user.id,
+        action="ADD_PUJA_MATERIAL",
+        entity_type="DayPujaMaterial",
+        entity_id=material.id,
+        new_value={"item_name_telugu": material.item_name_telugu, "provided_by": material.provided_by}
+    )
+
+    return {
+        "id": material.id,
+        "festival_day_id": material.festival_day_id,
+        "programme_activity_id": material.programme_activity_id,
+        "item_name_telugu": material.item_name_telugu,
+        "item_name_english": material.item_name_english,
+        "quantity": material.quantity,
+        "unit": material.unit,
+        "unit_telugu": material.unit_telugu,
+        "instructions_telugu": material.instructions_telugu,
+        "instructions_english": material.instructions_english,
+        "provided_by": material.provided_by,
+        "display_order": material.display_order,
+        "is_published": material.is_published
+    }
+
+@router.put("/materials/{material_id}")
+def update_day_puja_material(
+    material_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_operator)
+):
+    org_id = current_user.organization_id
+    mat = db.query(DayPujaMaterial).filter(DayPujaMaterial.id == material_id, DayPujaMaterial.organization_id == org_id).first()
+    if not mat:
+        raise HTTPException(status_code=404, detail="Puja material entry not found")
+
+    if "item_name_telugu" in payload and payload["item_name_telugu"]:
+        mat.item_name_telugu = payload["item_name_telugu"].strip()
+    if "item_name_english" in payload:
+        mat.item_name_english = payload["item_name_english"].strip() or None
+    if "programme_activity_id" in payload:
+        mat.programme_activity_id = payload["programme_activity_id"] or None
+    if "quantity" in payload:
+        mat.quantity = payload["quantity"].strip() or None
+    if "unit" in payload:
+        mat.unit = payload["unit"].strip() or None
+    if "unit_telugu" in payload:
+        mat.unit_telugu = payload["unit_telugu"].strip() or None
+    if "instructions_telugu" in payload:
+        mat.instructions_telugu = payload["instructions_telugu"].strip() or None
+    if "instructions_english" in payload:
+        mat.instructions_english = payload["instructions_english"].strip() or None
+    if "provided_by" in payload:
+        mat.provided_by = payload["provided_by"]
+    if "display_order" in payload:
+        mat.display_order = int(payload["display_order"])
+    if "is_published" in payload:
+        mat.is_published = bool(payload["is_published"])
+
+    mat.updated_at = datetime.utcnow()
+    db.commit()
+    return mat
+
+@router.put("/materials/{material_id}/toggle-publish")
+def toggle_puja_material_publish(
+    material_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_operator)
+):
+    org_id = current_user.organization_id
+    mat = db.query(DayPujaMaterial).filter(DayPujaMaterial.id == material_id, DayPujaMaterial.organization_id == org_id).first()
+    if not mat:
+        raise HTTPException(status_code=404, detail="Puja material entry not found")
+
+    mat.is_published = not mat.is_published
+    mat.updated_at = datetime.utcnow()
+    db.commit()
+    return {"id": mat.id, "is_published": mat.is_published}
+
+@router.put("/days/{day_id}/reorder-materials")
+@router.put("/days/{day_id}/materials/reorder")
+def reorder_puja_materials(
+    day_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_operator)
+):
+    org_id = current_user.organization_id
+    material_ids = payload.get("material_ids", [])
+    for idx, mid in enumerate(material_ids):
+        m = db.query(DayPujaMaterial).filter(
+            DayPujaMaterial.id == mid, 
+            DayPujaMaterial.festival_day_id == day_id,
+            DayPujaMaterial.organization_id == org_id
+        ).first()
+        if m:
+            m.display_order = idx
+    db.commit()
+    return {"message": "Puja materials reordered successfully"}
+
+@router.delete("/materials/{material_id}")
+def delete_puja_material(
+    material_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_operator)
+):
+    org_id = current_user.organization_id
+    mat = db.query(DayPujaMaterial).filter(DayPujaMaterial.id == material_id, DayPujaMaterial.organization_id == org_id).first()
+    if not mat:
+        raise HTTPException(status_code=404, detail="Puja material entry not found")
+
+    db.delete(mat)
+    db.commit()
+    return {"message": "Puja material entry deleted"}
+
 
 # -------------------------------------------------------------
 # 4. DAY PHOTO UPLOADS & GALLERY PUBLISHING

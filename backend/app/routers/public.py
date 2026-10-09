@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.models.db_models import (
     Organization, Event, FestivalDay, ProgrammeActivity, 
     PoojaCouple, DayPhoto, Announcement, Sponsor, Receipt, Donor,
-    MaterialContribution, DonationCategory
+    MaterialContribution, DonationCategory, DayPujaMaterial
 )
 from app.models.schemas import (
     FestivalDaySchema, DayPhotoSchema, AnnouncementSchema, 
@@ -136,6 +136,11 @@ def get_today_programme(db: Session = Depends(get_db)):
         PoojaCouple.is_published == True
     ).order_by(PoojaCouple.display_order.asc()).all()
 
+    puja_materials = db.query(DayPujaMaterial).filter(
+        DayPujaMaterial.festival_day_id == target_day.id,
+        DayPujaMaterial.is_published == True
+    ).order_by(DayPujaMaterial.display_order.asc(), DayPujaMaterial.created_at.asc()).all()
+
     return {
         "status_phase": status_phase,
         "current_date": today_str,
@@ -156,16 +161,46 @@ def get_today_programme(db: Session = Depends(get_db)):
                     "title_english": a.title_english,
                     "time_str": a.time_str or "సమయం త్వరలో తెలియజేస్తాము",
                     "time_str_english": a.time_str_english or "Time to be announced",
-                    "activity_type": a.activity_type
+                    "activity_type": a.activity_type,
+                    "allowed_participation_types": a.allowed_participation_types,
+                    "who_can_participate_telugu": a.who_can_participate_telugu,
+                    "who_can_participate_english": a.who_can_participate_english,
+                    "participation_instructions_telugu": a.participation_instructions_telugu,
+                    "participation_instructions_english": a.participation_instructions_english,
+                    "what_to_bring_telugu": a.what_to_bring_telugu,
+                    "what_to_bring_english": a.what_to_bring_english,
+                    "arrival_instructions_telugu": a.arrival_instructions_telugu,
+                    "arrival_instructions_english": a.arrival_instructions_english,
                 } for a in activities
             ],
             "pooja_couples": [
                 {
                     "id": c.id,
+                    "programme_activity_id": c.programme_activity_id,
+                    "participant_type": c.participant_type or "COUPLE",
                     "person1_name": c.person1_name,
+                    "person1_name_telugu": c.person1_name_telugu,
                     "person2_name": c.person2_name,
-                    "family_display_name": c.family_display_name or (f"{c.person1_name} & {c.person2_name}" if c.person2_name else c.person1_name)
+                    "person2_name_telugu": c.person2_name_telugu,
+                    "family_display_name": c.family_display_name or (f"{c.person1_name} & {c.person2_name}" if c.person2_name else c.person1_name),
+                    "family_display_name_telugu": c.family_display_name_telugu or (f"{c.person1_name_telugu or c.person1_name} మరియు {c.person2_name_telugu or c.person2_name}" if c.person2_name else c.person1_name_telugu)
                 } for c in pooja_couples
+            ],
+            "puja_materials": [
+                {
+                    "id": m.id,
+                    "festival_day_id": m.festival_day_id,
+                    "programme_activity_id": m.programme_activity_id,
+                    "item_name_telugu": m.item_name_telugu,
+                    "item_name_english": m.item_name_english,
+                    "quantity": m.quantity,
+                    "unit": m.unit,
+                    "unit_telugu": m.unit_telugu,
+                    "instructions_telugu": m.instructions_telugu,
+                    "instructions_english": m.instructions_english,
+                    "provided_by": m.provided_by,
+                    "display_order": m.display_order
+                } for m in puja_materials
             ]
         }
     }
@@ -183,17 +218,43 @@ def get_all_festival_days(db: Session = Depends(get_db)):
         FestivalDay.is_published == True
     ).order_by(FestivalDay.day_number.asc()).all()
 
+    if not days:
+        return []
+
+    day_ids = [d.id for d in days]
+
+    # Batch fetch all related records in 3 queries instead of N*3 roundtrips
+    from collections import defaultdict
+    activities_by_day = defaultdict(list)
+    couples_by_day = defaultdict(list)
+    materials_by_day = defaultdict(list)
+
+    all_activities = db.query(ProgrammeActivity).filter(
+        ProgrammeActivity.festival_day_id.in_(day_ids),
+        ProgrammeActivity.is_published == True
+    ).order_by(ProgrammeActivity.display_order.asc()).all()
+    for a in all_activities:
+        activities_by_day[a.festival_day_id].append(a)
+
+    all_couples = db.query(PoojaCouple).filter(
+        PoojaCouple.festival_day_id.in_(day_ids),
+        PoojaCouple.is_published == True
+    ).order_by(PoojaCouple.display_order.asc()).all()
+    for c in all_couples:
+        couples_by_day[c.festival_day_id].append(c)
+
+    all_materials = db.query(DayPujaMaterial).filter(
+        DayPujaMaterial.festival_day_id.in_(day_ids),
+        DayPujaMaterial.is_published == True
+    ).order_by(DayPujaMaterial.display_order.asc(), DayPujaMaterial.created_at.asc()).all()
+    for m in all_materials:
+        materials_by_day[m.festival_day_id].append(m)
+
     output = []
     for d in days:
-        activities = db.query(ProgrammeActivity).filter(
-            ProgrammeActivity.festival_day_id == d.id,
-            ProgrammeActivity.is_published == True
-        ).order_by(ProgrammeActivity.display_order.asc()).all()
-
-        couples = db.query(PoojaCouple).filter(
-            PoojaCouple.festival_day_id == d.id,
-            PoojaCouple.is_published == True
-        ).order_by(PoojaCouple.display_order.asc()).all()
+        activities = activities_by_day.get(d.id, [])
+        couples = couples_by_day.get(d.id, [])
+        materials = materials_by_day.get(d.id, [])
 
         output.append({
             "id": d.id,
@@ -211,16 +272,46 @@ def get_all_festival_days(db: Session = Depends(get_db)):
                     "title_english": a.title_english,
                     "time_str": a.time_str or "సమయం త్వరలో తెలియజేస్తాము",
                     "time_str_english": a.time_str_english or "Time to be announced",
-                    "activity_type": a.activity_type
+                    "activity_type": a.activity_type,
+                    "allowed_participation_types": a.allowed_participation_types,
+                    "who_can_participate_telugu": a.who_can_participate_telugu,
+                    "who_can_participate_english": a.who_can_participate_english,
+                    "participation_instructions_telugu": a.participation_instructions_telugu,
+                    "participation_instructions_english": a.participation_instructions_english,
+                    "what_to_bring_telugu": a.what_to_bring_telugu,
+                    "what_to_bring_english": a.what_to_bring_english,
+                    "arrival_instructions_telugu": a.arrival_instructions_telugu,
+                    "arrival_instructions_english": a.arrival_instructions_english,
                 } for a in activities
             ],
             "pooja_couples": [
                 {
                     "id": c.id,
+                    "programme_activity_id": c.programme_activity_id,
+                    "participant_type": c.participant_type or "COUPLE",
                     "person1_name": c.person1_name,
+                    "person1_name_telugu": c.person1_name_telugu,
                     "person2_name": c.person2_name,
-                    "family_display_name": c.family_display_name
+                    "person2_name_telugu": c.person2_name_telugu,
+                    "family_display_name": c.family_display_name or (f"{c.person1_name} & {c.person2_name}" if c.person2_name else c.person1_name),
+                    "family_display_name_telugu": c.family_display_name_telugu or (f"{c.person1_name_telugu or c.person1_name} మరియు {c.person2_name_telugu or c.person2_name}" if c.person2_name else c.person1_name_telugu)
                 } for c in couples
+            ],
+            "puja_materials": [
+                {
+                    "id": m.id,
+                    "festival_day_id": m.festival_day_id,
+                    "programme_activity_id": m.programme_activity_id,
+                    "item_name_telugu": m.item_name_telugu,
+                    "item_name_english": m.item_name_english,
+                    "quantity": m.quantity,
+                    "unit": m.unit,
+                    "unit_telugu": m.unit_telugu,
+                    "instructions_telugu": m.instructions_telugu,
+                    "instructions_english": m.instructions_english,
+                    "provided_by": m.provided_by,
+                    "display_order": m.display_order
+                } for m in materials
             ]
         })
 

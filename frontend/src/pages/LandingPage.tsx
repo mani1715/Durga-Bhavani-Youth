@@ -22,13 +22,42 @@ interface ProgrammeActivity {
   title_telugu: string;
   title_english?: string;
   activity_type?: string;
+  allowed_participation_types?: string;
+  who_can_participate_telugu?: string;
+  who_can_participate_english?: string;
+  participation_instructions_telugu?: string;
+  participation_instructions_english?: string;
+  what_to_bring_telugu?: string;
+  what_to_bring_english?: string;
+  arrival_instructions_telugu?: string;
+  arrival_instructions_english?: string;
 }
 
 interface PoojaCouple {
   id: string;
+  programme_activity_id?: string | null;
+  participant_type?: string;
   person1_name: string;
+  person1_name_telugu?: string;
   person2_name?: string;
+  person2_name_telugu?: string;
   family_display_name?: string;
+  family_display_name_telugu?: string;
+}
+
+interface DayPujaMaterial {
+  id: string;
+  festival_day_id: string;
+  programme_activity_id?: string | null;
+  item_name_telugu: string;
+  item_name_english?: string | null;
+  quantity?: string | null;
+  unit?: string | null;
+  unit_telugu?: string | null;
+  instructions_telugu?: string | null;
+  instructions_english?: string | null;
+  provided_by: 'DEVOTEES' | 'COMMITTEE';
+  display_order: number;
 }
 
 interface FestivalDay {
@@ -42,6 +71,7 @@ interface FestivalDay {
   is_completed?: boolean;
   activities: ProgrammeActivity[];
   pooja_couples: PoojaCouple[];
+  puja_materials?: DayPujaMaterial[];
 }
 
 interface TodayProgrammeData {
@@ -610,27 +640,59 @@ export const LandingPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Two Column Grid: Activities Schedule vs Pooja Couples */}
+                    {/* Two Column Grid: Activities Schedule vs Pooja Couples / Participants */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       
-                      {/* Column 1: Activities Schedule */}
+                      {/* Column 1: Activities Schedule & Special Puja Instructions */}
                       <div className="space-y-3 bg-[#FFFDF9] p-5 rounded-2xl border border-stone-200/80 shadow-xs">
                         <h4 className="text-base font-medium text-slate-900 flex items-center gap-2 border-b border-stone-200/70 pb-2.5">
                           <Clock className="h-4 w-4 text-amber-700" />
                           {t.today.activitiesHeading}
                         </h4>
                         {Array.isArray(todayData.day.activities) && todayData.day.activities.length > 0 ? (
-                          <ul className="space-y-2.5">
+                          <ul className="space-y-3">
                             {todayData.day.activities.map(act => (
-                              <li key={act.id} className="flex items-start gap-2.5 text-base">
-                                <span className="font-medium text-amber-900 bg-amber-100/70 border border-amber-200/80 px-2 py-1 rounded-md shrink-0 text-sm">
-                                  {(lang === 'en' ? (act.time_str_english || act.time_str) : act.time_str) || t.today.timePending}
-                                </span>
-                                <div className="pt-0.5">
-                                  <p className="font-normal text-slate-800 leading-relaxed">
-                                    {getLocalizedText(lang, act.title_telugu, act.title_english)}
-                                  </p>
+                              <li key={act.id} className="p-3 bg-amber-50/40 rounded-xl border border-amber-200/60 space-y-2">
+                                <div className="flex items-start gap-2.5 text-base">
+                                  <span className="font-medium text-amber-900 bg-amber-100/70 border border-amber-200/80 px-2 py-1 rounded-md shrink-0 text-sm">
+                                    {(lang === 'en' ? (act.time_str_english || act.time_str) : act.time_str) || t.today.timePending}
+                                  </span>
+                                  <div className="pt-0.5">
+                                    <p className="font-medium text-slate-900 leading-relaxed">
+                                      {getLocalizedText(lang, act.title_telugu, act.title_english)}
+                                    </p>
+                                  </div>
                                 </div>
+
+                                {/* Special Puja Participation Guidance */}
+                                {(act.who_can_participate_telugu || act.what_to_bring_telugu || act.participation_instructions_telugu || act.arrival_instructions_telugu) && (
+                                  <div className="mt-2 text-xs sm:text-sm bg-white/90 border border-amber-200/90 rounded-xl p-3 space-y-1.5 text-slate-800">
+                                    {(act.who_can_participate_telugu || act.who_can_participate_english) && (
+                                      <div>
+                                        <span className="font-semibold text-amber-950">{t.today.whoCanParticipateHeading}: </span>
+                                        <span>{getLocalizedText(lang, act.who_can_participate_telugu, act.who_can_participate_english)}</span>
+                                      </div>
+                                    )}
+                                    {(act.what_to_bring_telugu || act.what_to_bring_english) && (
+                                      <div>
+                                        <span className="font-semibold text-amber-950">{t.today.whatToBringHeading}: </span>
+                                        <span>{getLocalizedText(lang, act.what_to_bring_telugu, act.what_to_bring_english)}</span>
+                                      </div>
+                                    )}
+                                    {(act.participation_instructions_telugu || act.participation_instructions_english) && (
+                                      <div>
+                                        <span className="font-semibold text-amber-950">{lang === 'en' ? 'Instructions: ' : 'పూజా సూచనలు: '}</span>
+                                        <span>{getLocalizedText(lang, act.participation_instructions_telugu, act.participation_instructions_english)}</span>
+                                      </div>
+                                    )}
+                                    {(act.arrival_instructions_telugu || act.arrival_instructions_english) && (
+                                      <div>
+                                        <span className="font-semibold text-amber-950">{lang === 'en' ? 'Arrival & Timings: ' : 'సమయ పాలన: '}</span>
+                                        <span>{getLocalizedText(lang, act.arrival_instructions_telugu, act.arrival_instructions_english)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </li>
                             ))}
                           </ul>
@@ -641,21 +703,28 @@ export const LandingPage: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Column 2: Pooja Couples */}
+                      {/* Column 2: Pooja Couples / Participants */}
                       <div className="space-y-3 bg-[#FFFDF9] p-5 rounded-2xl border border-stone-200/80 shadow-xs">
                         <h4 className="text-base font-medium text-slate-900 flex items-center gap-2 border-b border-stone-200/70 pb-2.5">
                           <Heart className="h-4 w-4 text-amber-700" />
-                          {t.today.couplesHeading}
+                          {todayData.day.pooja_couples?.some(p => p.participant_type && p.participant_type !== 'COUPLE')
+                            ? t.today.participantsHeading
+                            : t.today.couplesHeading}
                         </h4>
                         {Array.isArray(todayData.day.pooja_couples) && todayData.day.pooja_couples.length > 0 ? (
                           <ul className="space-y-2.5">
-                            {todayData.day.pooja_couples.map(pc => (
-                              <li key={pc.id} className="p-3 bg-amber-50/60 border border-amber-200/70 rounded-xl space-y-0.5">
-                                <p className="text-base font-medium text-slate-900 leading-relaxed">
-                                  {pc.family_display_name || (pc.person2_name ? `${lang === 'te' ? 'శ్రీమతి & శ్రీ' : 'Smt & Sri'} ${pc.person1_name} & ${pc.person2_name}` : pc.person1_name)}
-                                </p>
-                              </li>
-                            ))}
+                            {todayData.day.pooja_couples.map(pc => {
+                              const displayName = lang === 'te'
+                                ? (pc.family_display_name_telugu || pc.family_display_name || (pc.person2_name ? `శ్రీమతి & శ్రీ ${pc.person1_name_telugu || pc.person1_name} & ${pc.person2_name_telugu || pc.person2_name}` : (pc.person1_name_telugu || pc.person1_name)))
+                                : (pc.family_display_name || (pc.person2_name ? `Smt & Sri ${pc.person1_name} & ${pc.person2_name}` : pc.person1_name));
+                              return (
+                                <li key={pc.id} className="p-3 bg-amber-50/60 border border-amber-200/70 rounded-xl space-y-0.5">
+                                  <p className="text-base font-medium text-slate-900 leading-relaxed">
+                                    🌺 {displayName}
+                                  </p>
+                                </li>
+                              );
+                            })}
                           </ul>
                         ) : (
                           <p className="text-xs text-slate-500 py-3 text-center">
@@ -664,6 +733,59 @@ export const LandingPage: React.FC = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Puja Materials to Bring Section for Today */}
+                    {Array.isArray(todayData.day.puja_materials) && todayData.day.puja_materials.length > 0 && (
+                      <div className="space-y-4 pt-4 border-t border-amber-200/60">
+                        <h4 className="text-base sm:text-lg font-medium text-slate-900 flex items-center gap-2">
+                          <span>🪔 {t.today.materialsHeading}</span>
+                          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-900 rounded-full font-normal">
+                            ({todayData.day.puja_materials.length})
+                          </span>
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {todayData.day.puja_materials.map(mat => (
+                            <div 
+                              key={mat.id}
+                              className={`p-3.5 rounded-2xl border text-sm space-y-1.5 ${
+                                mat.provided_by === 'COMMITTEE'
+                                  ? 'bg-blue-50/60 border-blue-200 text-slate-800'
+                                  : 'bg-amber-50/70 border-amber-200 text-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold text-slate-900">
+                                  {getLocalizedText(lang, mat.item_name_telugu, mat.item_name_english)}
+                                </span>
+                                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                                  mat.provided_by === 'COMMITTEE'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-amber-100 text-amber-900'
+                                }`}>
+                                  {mat.provided_by === 'COMMITTEE'
+                                    ? t.today.committeeMaterialsHeading
+                                    : t.today.whatToBringHeading}
+                                </span>
+                              </div>
+
+                              {mat.quantity && (
+                                <p className="text-xs font-medium text-amber-950">
+                                  {lang === 'en' ? 'Quantity: ' : 'పరిమాణం: '} 
+                                  {mat.quantity} {getLocalizedText(lang, mat.unit_telugu, mat.unit)}
+                                </p>
+                              )}
+
+                              {(mat.instructions_telugu || mat.instructions_english) && (
+                                <p className="text-xs text-slate-600 italic">
+                                  {getLocalizedText(lang, mat.instructions_telugu, mat.instructions_english)}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                   </div>
                 ) : (
@@ -1474,23 +1596,55 @@ export const LandingPage: React.FC = () => {
               )}
             </div>
 
-            {/* Activities */}
+            {/* Activities Schedule & Special Puja Instructions */}
             <div className="space-y-2.5 pt-1">
               <h4 className="text-sm font-medium text-slate-900 border-b border-stone-200 pb-1.5 uppercase tracking-normal">
                 {t.modal.activitiesHeading}
               </h4>
               {Array.isArray(selectedDayModal.activities) && selectedDayModal.activities.length > 0 ? (
-                <ul className="space-y-2">
+                <ul className="space-y-2.5">
                   {selectedDayModal.activities.map(act => (
-                    <li key={act.id} className="flex items-start gap-2.5 text-sm sm:text-base bg-amber-50/40 p-2.5 rounded-xl border border-amber-100">
-                      <span className="font-medium text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md shrink-0 text-xs sm:text-sm">
-                        {(lang === 'en' ? (act.time_str_english || act.time_str) : act.time_str) || t.today.timePending}
-                      </span>
-                      <div className="pt-0.5">
-                        <p className="font-normal text-slate-800 leading-relaxed">
-                          {getLocalizedText(lang, act.title_telugu, act.title_english)}
-                        </p>
+                    <li key={act.id} className="p-3 bg-amber-50/50 rounded-xl border border-amber-200/70 space-y-2">
+                      <div className="flex items-start gap-2.5 text-sm sm:text-base">
+                        <span className="font-medium text-amber-800 bg-amber-100/70 border border-amber-200 px-2 py-0.5 rounded-md shrink-0 text-xs sm:text-sm">
+                          {(lang === 'en' ? (act.time_str_english || act.time_str) : act.time_str) || t.modal.timePending}
+                        </span>
+                        <div className="pt-0.5">
+                          <p className="font-medium text-slate-900 leading-relaxed">
+                            {getLocalizedText(lang, act.title_telugu, act.title_english)}
+                          </p>
+                        </div>
                       </div>
+
+                      {/* Special Puja Participation Guidance */}
+                      {(act.who_can_participate_telugu || act.what_to_bring_telugu || act.participation_instructions_telugu || act.arrival_instructions_telugu) && (
+                        <div className="text-xs sm:text-sm bg-white/95 border border-amber-200 rounded-lg p-2.5 space-y-1 text-slate-800">
+                          {(act.who_can_participate_telugu || act.who_can_participate_english) && (
+                            <div>
+                              <span className="font-semibold text-amber-950">{t.modal.whoCanParticipateHeading}: </span>
+                              <span>{getLocalizedText(lang, act.who_can_participate_telugu, act.who_can_participate_english)}</span>
+                            </div>
+                          )}
+                          {(act.what_to_bring_telugu || act.what_to_bring_english) && (
+                            <div>
+                              <span className="font-semibold text-amber-950">{t.modal.whatToBringHeading}: </span>
+                              <span>{getLocalizedText(lang, act.what_to_bring_telugu, act.what_to_bring_english)}</span>
+                            </div>
+                          )}
+                          {(act.participation_instructions_telugu || act.participation_instructions_english) && (
+                            <div>
+                              <span className="font-semibold text-amber-950">{lang === 'en' ? 'Instructions: ' : 'పూజా సూచనలు: '}</span>
+                              <span>{getLocalizedText(lang, act.participation_instructions_telugu, act.participation_instructions_english)}</span>
+                            </div>
+                          )}
+                          {(act.arrival_instructions_telugu || act.arrival_instructions_english) && (
+                            <div>
+                              <span className="font-semibold text-amber-950">{lang === 'en' ? 'Arrival & Timings: ' : 'సమయ పాలన: '}</span>
+                              <span>{getLocalizedText(lang, act.arrival_instructions_telugu, act.arrival_instructions_english)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -1499,20 +1653,77 @@ export const LandingPage: React.FC = () => {
               )}
             </div>
 
-            {/* Pooja Couples */}
+            {/* Puja Materials to Bring */}
+            {Array.isArray(selectedDayModal.puja_materials) && selectedDayModal.puja_materials.length > 0 && (
+              <div className="space-y-2.5 pt-1">
+                <h4 className="text-sm font-medium text-slate-900 border-b border-stone-200 pb-1.5 uppercase tracking-normal flex items-center justify-between">
+                  <span>🪔 {t.modal.materialsHeading}</span>
+                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-900 rounded-full font-normal">
+                    {selectedDayModal.puja_materials.length}
+                  </span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {selectedDayModal.puja_materials.map(mat => (
+                    <div 
+                      key={mat.id}
+                      className={`p-2.5 rounded-xl border text-xs sm:text-sm space-y-1 ${
+                        mat.provided_by === 'COMMITTEE'
+                          ? 'bg-blue-50/60 border-blue-200 text-slate-800'
+                          : 'bg-amber-50/70 border-amber-200 text-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="font-semibold text-slate-900">
+                          {getLocalizedText(lang, mat.item_name_telugu, mat.item_name_english)}
+                        </span>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
+                          mat.provided_by === 'COMMITTEE'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-amber-100 text-amber-900'
+                        }`}>
+                          {mat.provided_by === 'COMMITTEE'
+                            ? t.modal.committeeMaterialsHeading
+                            : t.modal.whatToBringHeading}
+                        </span>
+                      </div>
+                      {mat.quantity && (
+                        <p className="text-[11px] font-medium text-amber-950">
+                          {lang === 'en' ? 'Qty: ' : 'పరిమాణం: '} 
+                          {mat.quantity} {getLocalizedText(lang, mat.unit_telugu, mat.unit)}
+                        </p>
+                      )}
+                      {(mat.instructions_telugu || mat.instructions_english) && (
+                        <p className="text-[11px] text-slate-600 italic">
+                          {getLocalizedText(lang, mat.instructions_telugu, mat.instructions_english)}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pooja Couples / Participants */}
             <div className="space-y-2.5 pt-1">
               <h4 className="text-sm font-medium text-slate-900 border-b border-stone-200 pb-1.5 uppercase tracking-normal">
-                {t.modal.couplesHeading}
+                {selectedDayModal.pooja_couples?.some(p => p.participant_type && p.participant_type !== 'COUPLE')
+                  ? t.modal.participantsHeading
+                  : t.modal.couplesHeading}
               </h4>
               {Array.isArray(selectedDayModal.pooja_couples) && selectedDayModal.pooja_couples.length > 0 ? (
                 <ul className="space-y-2">
-                  {selectedDayModal.pooja_couples.map(pc => (
-                    <li key={pc.id} className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 space-y-0.5">
-                      <p className="text-sm font-medium text-slate-900 leading-relaxed">
-                        {pc.family_display_name || (pc.person2_name ? `${lang === 'te' ? 'శ్రీమతి & శ్రీ' : 'Smt & Sri'} ${pc.person1_name} & ${pc.person2_name}` : pc.person1_name)}
-                      </p>
-                    </li>
-                  ))}
+                  {selectedDayModal.pooja_couples.map(pc => {
+                    const displayName = lang === 'te'
+                      ? (pc.family_display_name_telugu || pc.family_display_name || (pc.person2_name ? `శ్రీమతి & శ్రీ ${pc.person1_name_telugu || pc.person1_name} & ${pc.person2_name_telugu || pc.person2_name}` : (pc.person1_name_telugu || pc.person1_name)))
+                      : (pc.family_display_name || (pc.person2_name ? `Smt & Sri ${pc.person1_name} & ${pc.person2_name}` : pc.person1_name));
+                    return (
+                      <li key={pc.id} className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 space-y-0.5">
+                        <p className="text-sm font-medium text-slate-900 leading-relaxed">
+                          🌺 {displayName}
+                        </p>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="text-xs sm:text-sm text-stone-500 italic">{t.modal.couplesPending}</p>

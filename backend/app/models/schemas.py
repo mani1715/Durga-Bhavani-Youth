@@ -311,23 +311,84 @@ class ProgrammeActivitySchema(BaseModel):
     title_telugu: str
     title_english: Optional[str] = None
     time_str: Optional[str] = None
-    activity_type: str
-    display_order: int
-    is_published: bool
+    time_str_english: Optional[str] = None
+    activity_type: str = "RITUAL"
+    display_order: int = 0
+    is_published: bool = True
+    allowed_participation_types: Optional[str] = None
+    who_can_participate_telugu: Optional[str] = None
+    who_can_participate_english: Optional[str] = None
+    participation_instructions_telugu: Optional[str] = None
+    participation_instructions_english: Optional[str] = None
+    what_to_bring_telugu: Optional[str] = None
+    what_to_bring_english: Optional[str] = None
+    arrival_instructions_telugu: Optional[str] = None
+    arrival_instructions_english: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 class PoojaCoupleSchema(BaseModel):
     id: str
+    festival_day_id: Optional[str] = None
+    programme_activity_id: Optional[str] = None
+    participant_type: str = "COUPLE"
     person1_name: str
+    person1_name_telugu: Optional[str] = None
     person2_name: Optional[str] = None
+    person2_name_telugu: Optional[str] = None
     family_display_name: Optional[str] = None
-    display_order: int
-    is_published: bool
+    family_display_name_telugu: Optional[str] = None
+    display_order: int = 0
+    is_published: bool = True
 
     class Config:
         from_attributes = True
+
+class DayPujaMaterialSchema(BaseModel):
+    id: str
+    festival_day_id: str
+    programme_activity_id: Optional[str] = None
+    item_name_telugu: str
+    item_name_english: Optional[str] = None
+    quantity: Optional[str] = None
+    unit: Optional[str] = None
+    unit_telugu: Optional[str] = None
+    instructions_telugu: Optional[str] = None
+    instructions_english: Optional[str] = None
+    provided_by: str = "DEVOTEES"
+    display_order: int = 0
+    is_published: bool = True
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class DayPujaMaterialCreateSchema(BaseModel):
+    programme_activity_id: Optional[str] = None
+    item_name_telugu: str
+    item_name_english: Optional[str] = None
+    quantity: Optional[str] = None
+    unit: Optional[str] = None
+    unit_telugu: Optional[str] = None
+    instructions_telugu: Optional[str] = None
+    instructions_english: Optional[str] = None
+    provided_by: str = "DEVOTEES"
+    display_order: Optional[int] = 0
+    is_published: Optional[bool] = True
+
+class DayPujaMaterialUpdateSchema(BaseModel):
+    programme_activity_id: Optional[str] = None
+    item_name_telugu: Optional[str] = None
+    item_name_english: Optional[str] = None
+    quantity: Optional[str] = None
+    unit: Optional[str] = None
+    unit_telugu: Optional[str] = None
+    instructions_telugu: Optional[str] = None
+    instructions_english: Optional[str] = None
+    provided_by: Optional[str] = None
+    display_order: Optional[int] = None
+    is_published: Optional[bool] = None
 
 class FestivalDaySchema(BaseModel):
     id: str
@@ -341,9 +402,11 @@ class FestivalDaySchema(BaseModel):
     is_published: bool
     activities: List[ProgrammeActivitySchema] = []
     pooja_couples: List[PoojaCoupleSchema] = []
+    puja_materials: List[DayPujaMaterialSchema] = []
 
     class Config:
         from_attributes = True
+
 
 class DayPhotoSchema(BaseModel):
     id: str
