@@ -141,6 +141,32 @@ def health_check():
         "storage_type": settings.STORAGE_TYPE
     }
 
+# Optional Frontend Static SPA Mount (for unified single-container deployments)
+frontend_dist_paths = [
+    os.environ.get("FRONTEND_DIST_DIR", ""),
+    os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"),
+    os.path.join(os.path.dirname(__file__), "..", "dist"),
+    "/app/frontend/dist",
+]
+frontend_dist = next((p for p in frontend_dist_paths if p and os.path.exists(p) and os.path.isdir(p)), None)
+
+if frontend_dist:
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    def serve_frontend_spa(full_path: str):
+        if full_path.startswith("api/") or full_path == "api" or full_path.startswith("health") or full_path == "health":
+            raise HTTPException(status_code=404, detail="Not Found")
+        target_file = os.path.join(frontend_dist, full_path)
+        if os.path.isfile(target_file):
+            return FileResponse(target_file)
+        index_file = os.path.join(frontend_dist, "index.html")
+        if os.path.isfile(index_file):
+            return FileResponse(index_file)
+        raise HTTPException(status_code=404, detail="Frontend file not found")
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
