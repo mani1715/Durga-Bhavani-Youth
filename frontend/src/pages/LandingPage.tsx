@@ -151,6 +151,7 @@ interface Announcement {
 }
 
 import { useLanguage } from '../context/LanguageContext';
+import { buildApiUrl } from '../services/api';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -161,6 +162,10 @@ export const LandingPage: React.FC = () => {
   const handleLangChange = (newLang: Language) => {
     setLang(newLang);
   };
+
+  // In-flight request cancel controllers
+  const publicAbortRef = React.useRef<AbortController | null>(null);
+  const donationsAbortRef = React.useRef<AbortController | null>(null);
 
   // State
   const [todayData, setTodayData] = useState<TodayProgrammeData | null>(null);
@@ -197,47 +202,59 @@ export const LandingPage: React.FC = () => {
 
   // Fetch Public Info & Today's Schedule
   const fetchPublicData = useCallback(async () => {
+    if (publicAbortRef.current) {
+      publicAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    publicAbortRef.current = controller;
+    const signal = controller.signal;
+
     try {
       // 0. Public Info
-      const resInfo = await fetch('/api/public/info');
-      if (resInfo.ok) {
-        const infoData = await resInfo.json();
-        if (infoData.banner_image_url) {
-          setBannerImageUrl(infoData.banner_image_url);
-        }
-      }
+      fetch(buildApiUrl('/api/public/info'), { signal })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.banner_image_url) setBannerImageUrl(data.banner_image_url);
+        })
+        .catch(() => {});
 
       // 1. Today Programme
-      const resToday = await fetch('/api/public/programme/today');
-      if (resToday.ok) {
-        const data = await resToday.json();
-        setTodayData(data);
-      }
+      fetch(buildApiUrl('/api/public/programme/today'), { signal })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) setTodayData(data);
+        })
+        .catch(() => {});
 
       // 2. All Days Schedule
-      const resAll = await fetch('/api/public/programme/all');
-      if (resAll.ok) {
-        const data = await resAll.json();
-        if (Array.isArray(data)) setAllDays(data);
-      }
+      fetch(buildApiUrl('/api/public/programme/all'), { signal })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (Array.isArray(data)) setAllDays(data);
+        })
+        .catch(() => {});
 
       // 3. Gallery Albums
-      const resGal = await fetch('/api/public/gallery');
-      if (resGal.ok) {
-        const data = await resGal.json();
-        if (Array.isArray(data)) setAlbums(data);
-      }
+      fetch(buildApiUrl('/api/public/gallery'), { signal })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (Array.isArray(data)) setAlbums(data);
+        })
+        .catch(() => {});
 
       // 4. Announcements
-      const resAnn = await fetch('/api/public/announcements');
-      if (resAnn.ok) {
-        const data = await resAnn.json();
-        if (data && Array.isArray(data.announcements)) {
-          setAnnouncements(data.announcements);
-        }
+      fetch(buildApiUrl('/api/public/announcements'), { signal })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && Array.isArray(data.announcements)) {
+            setAnnouncements(data.announcements);
+          }
+        })
+        .catch(() => {});
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.warn('Failed to fetch public data:', err);
       }
-    } catch (err) {
-      console.error('Failed to fetch public data:', err);
     }
   }, []);
 
@@ -249,43 +266,55 @@ export const LandingPage: React.FC = () => {
     cType = donationTypeFilter,
     sortOrder = donationSort
   ) => {
+    if (donationsAbortRef.current) {
+      donationsAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    donationsAbortRef.current = controller;
+
     setLoadingDonations(true);
     try {
-      let url = `/api/public/donations?page=${page}&limit=20&sort=${sortOrder}&contribution_type=${cType}`;
+      let url = buildApiUrl(`/api/public/donations?page=${page}&limit=20&sort=${sortOrder}&contribution_type=${cType}`);
       if (search && search.trim()) url += `&search=${encodeURIComponent(search.trim())}`;
       if (category && category !== 'ALL') url += `&category_id=${encodeURIComponent(category)}`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
       if (res.ok) {
-        const data = await res.json();
-        setDonationsData({
-          total_received: data.total_received || 0,
-          donors_count: data.donors_count || 0,
-          materials_count: data.materials_count || 0,
-          filtered_received: data.filtered_received,
-          filtered_count: data.filtered_count,
-          is_filtered: Boolean(data.is_filtered),
-          categories: Array.isArray(data.categories) ? data.categories : [],
-          donations: Array.isArray(data.donations) ? data.donations : [],
-          total_count: data.total_count || 0,
-          page: data.page || 1,
-          total_pages: data.total_pages || 1,
-          last_updated: data.last_updated || ''
-        });
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          setDonationsData({
+            total_received: data.total_received || 0,
+            donors_count: data.donors_count || 0,
+            materials_count: data.materials_count || 0,
+            filtered_received: data.filtered_received,
+            filtered_count: data.filtered_count,
+            is_filtered: Boolean(data.is_filtered),
+            categories: Array.isArray(data.categories) ? data.categories : [],
+            donations: Array.isArray(data.donations) ? data.donations : [],
+            total_count: data.total_count || 0,
+            page: data.page || 1,
+            total_pages: data.total_pages || 1,
+            last_updated: data.last_updated || ''
+          });
+        }
       }
-    } catch (err) {
-      console.error('Failed to fetch donations:', err);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.warn('Failed to fetch donations:', err);
+      }
     } finally {
       setLoadingDonations(false);
     }
   }, [donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort]);
 
-  // Initial Load + 15s Polling + Window Focus Refresh
+  // Initial Load + 15s Polling (paused when hidden) + Window Focus Refresh
   useEffect(() => {
     fetchPublicData();
     fetchDonations(donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort);
 
     const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       fetchPublicData();
       fetchDonations(donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort);
     }, 15000);
@@ -302,6 +331,8 @@ export const LandingPage: React.FC = () => {
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (publicAbortRef.current) publicAbortRef.current.abort();
+      if (donationsAbortRef.current) donationsAbortRef.current.abort();
     };
   }, [fetchPublicData, fetchDonations, donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort]);
 
@@ -381,14 +412,14 @@ export const LandingPage: React.FC = () => {
           Left: Committee emblem & name | Center: Single-line English/Telugu nav | Right: Language switch
           ========================================================================= */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-white/95 border-b border-amber-200/80 shadow-xs w-full">
-        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+        <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Region 1: Left - Committee Photo Logo & Village Identity */}
           <div 
-            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none shrink-0" 
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none shrink min-w-0" 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-orange-300 shadow-xs shrink-0 bg-white">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-orange-300 shadow-xs shrink-0 bg-white">
               <img 
                 src="/committee-photo-logo.webp" 
                 alt={lang === 'te' ? 'దుర్గాభవాని యూత్ లోగో' : 'Durga Bhavani Youth Logo'} 
@@ -397,13 +428,16 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-medium text-sm sm:text-base text-slate-900 whitespace-nowrap">
+                <span className="font-semibold text-xs sm:text-base text-slate-900 truncate">
                   {lang === 'te' ? 'దుర్గాభవాని యూత్' : 'Durga Bhavani Youth'}
                 </span>
-                <span className="text-[11px] sm:text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 shrink-0">
+                <span className="hidden sm:inline-block text-[11px] sm:text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 shrink-0">
                   {lang === 'te' ? 'గరువుపాలెం' : 'Garuvupalem'}
                 </span>
               </div>
+              <p className="block sm:hidden text-[10px] text-amber-800 font-medium leading-none truncate mt-0.5">
+                {lang === 'te' ? 'గరువుపాలెం' : 'Garuvupalem'}
+              </p>
               <p className="hidden md:block text-xs text-amber-900 font-normal leading-normal mt-0.5 truncate">
                 {t.header.festivalTitle}
               </p>
@@ -421,11 +455,11 @@ export const LandingPage: React.FC = () => {
           </nav>
 
           {/* Region 3: Far Right - Language Switcher (తెలుగు | English) & Mobile Drawer Toggle */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <div className="flex items-center bg-stone-100 p-0.5 sm:p-1 rounded-xl border border-stone-200 text-xs sm:text-sm font-medium">
               <button
                 onClick={() => handleLangChange('te')}
-                className={`px-2 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   lang === 'te' 
                     ? 'bg-white text-amber-800 font-medium shadow-xs' 
                     : 'text-stone-600 hover:text-stone-900 font-normal'
@@ -437,7 +471,7 @@ export const LandingPage: React.FC = () => {
               <span className="text-stone-400 text-xs sm:text-sm px-0.5 select-none">|</span>
               <button
                 onClick={() => handleLangChange('en')}
-                className={`px-2 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   lang === 'en' 
                     ? 'bg-white text-amber-800 font-medium shadow-xs' 
                     : 'text-stone-600 hover:text-stone-900 font-normal'
@@ -451,7 +485,7 @@ export const LandingPage: React.FC = () => {
             {/* Mobile Drawer Button (visible below lg) */}
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-stone-700 hover:text-amber-700 rounded-lg border border-stone-200 cursor-pointer"
+              className="lg:hidden p-2 text-stone-700 hover:text-amber-700 rounded-lg border border-stone-200 cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -461,46 +495,46 @@ export const LandingPage: React.FC = () => {
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden bg-white/98 backdrop-blur-md border-b border-amber-200/80 px-5 pt-3 pb-6 space-y-2 shadow-xl">
+          <div className="lg:hidden bg-white/98 backdrop-blur-md border-b border-amber-200/80 px-4 pt-3 pb-6 space-y-1 shadow-xl">
             <a 
               href="#hero" 
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-[15px]"
+              className="block px-3.5 py-3 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-base min-h-[44px] flex items-center"
             >
               {t.header.navHome}
             </a>
             <a 
               href="#today" 
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-[15px]"
+              className="block px-3.5 py-3 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-base min-h-[44px] flex items-center"
             >
               {t.header.navSchedule}
             </a>
             <a 
               href="#donations" 
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-[15px]"
+              className="block px-3.5 py-3 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-base min-h-[44px] flex items-center"
             >
               {t.header.navDonations}
             </a>
             <a 
               href="#gallery" 
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-[15px]"
+              className="block px-3.5 py-3 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-base min-h-[44px] flex items-center"
             >
               {t.header.navGallery}
             </a>
             <a 
               href="#announcements" 
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-[15px]"
+              className="block px-3.5 py-3 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-base min-h-[44px] flex items-center"
             >
               {t.header.navAnnouncements}
             </a>
             <a 
               href="#contact" 
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-[15px]"
+              className="block px-3.5 py-3 rounded-xl text-slate-800 hover:bg-amber-50 font-medium text-base min-h-[44px] flex items-center"
             >
               {t.header.navContact}
             </a>
@@ -993,7 +1027,7 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Category Filter Pills */}
-            <div className="flex items-center justify-center gap-2 flex-wrap max-w-4xl mx-auto">
+            <div className="w-full max-w-4xl mx-auto overflow-x-auto py-1 px-1 flex items-center sm:flex-wrap sm:justify-center gap-2 scrollbar-none">
               <button
                 onClick={() => handleCategoryChange('ALL')}
                 className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${

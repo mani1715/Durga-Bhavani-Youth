@@ -18,16 +18,15 @@ import { FestivalManagement } from './pages/FestivalManagement';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-const RootRoute: React.FC = () => {
-  const { token, loading } = useAuth();
-  if (loading) return <div className="text-slate-400 text-sm p-8 bg-slate-950 min-h-screen flex items-center justify-center">Loading session...</div>;
-  if (!token) return <ErrorBoundary><LandingPage /></ErrorBoundary>;
-  return <Navigate to="/home" replace />;
-};
-
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, loading } = useAuth();
-  if (loading) return <div className="text-slate-400 text-sm p-8 bg-slate-950 min-h-screen flex items-center justify-center">Loading session...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FFF7ED] flex items-center justify-center text-amber-900 text-sm font-medium animate-pulse">
+        సెషన్ ధృవీకరిస్తోంది... / Loading session...
+      </div>
+    );
+  }
   if (!token) return <Navigate to="/login" replace />;
   return <Layout><ErrorBoundary>{children}</ErrorBoundary></Layout>;
 };
@@ -41,7 +40,7 @@ export default function App() {
             <BrowserRouter>
             <Routes>
               {/* PUBLIC ROUTES */}
-              <Route path="/" element={<RootRoute />} />
+              <Route path="/" element={<ErrorBoundary><LandingPage /></ErrorBoundary>} />
               <Route path="/login" element={<Login />} />
               <Route path="/verify" element={<VerifyReceipt />} />
               

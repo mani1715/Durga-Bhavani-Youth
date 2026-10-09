@@ -18,6 +18,8 @@ interface EventContextType {
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
+import { buildApiUrl } from '../services/api';
+
 export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
@@ -29,7 +31,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLoading(false);
       return;
     }
-    fetch('/api/settings/events', {
+    fetch(buildApiUrl('/api/settings/events'), {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {

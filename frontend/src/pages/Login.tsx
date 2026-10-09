@@ -5,14 +5,23 @@ import { Eye, EyeOff, LogIn, ArrowLeft } from 'lucide-react';
 
 import { useLanguage } from '../context/LanguageContext';
 
+import { buildApiUrl } from '../services/api';
+
 export const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, token, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { lang, setLang, t } = useLanguage();
 
   const handleLangChange = (newLang: 'te' | 'en') => {
     setLang(newLang);
   };
+
+  // If already authenticated, redirect to /home
+  React.useEffect(() => {
+    if (!authLoading && token) {
+      navigate('/home', { replace: true });
+    }
+  }, [authLoading, token, navigate]);
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +35,7 @@ export const Login: React.FC = () => {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(buildApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: identifier, password })

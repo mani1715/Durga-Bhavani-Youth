@@ -80,10 +80,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Optional backend proxy when BACKEND_URL is set
-  if (pathname.startsWith('/api') && BACKEND_URL) {
-    proxyToBackend(req, res, BACKEND_URL);
-    return;
+  // API Requests: Must never return HTML
+  if (pathname.startsWith('/api')) {
+    if (BACKEND_URL) {
+      proxyToBackend(req, res, BACKEND_URL);
+      return;
+    } else {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ detail: 'Backend URL not configured on frontend server' }));
+      return;
+    }
   }
 
   // Prevent directory traversal
@@ -117,7 +123,15 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // SPA Fallback: for all other routes, serve index.html
+  // Missing file/asset with an extension (e.g. .js, .css, .png, etc.) must return 404, NOT index.html!
+  const requestedExt = path.extname(pathname);
+  if (requestedExt) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(`404 Not Found - Asset ${pathname} not found`);
+    return;
+  }
+
+  // SPA Fallback: for valid client-side routes, serve index.html
   const indexPath = path.join(DIST_DIR, 'index.html');
   if (fs.existsSync(indexPath)) {
     res.writeHead(200, {
@@ -127,7 +141,7 @@ const server = http.createServer((req, res) => {
     });
     fs.createReadStream(indexPath).pipe(res);
   } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('404 Not Found - Build dist directory missing');
   }
 });

@@ -13,10 +13,20 @@ const rawApiUrl = (
 
 export const API_BASE_URL = rawApiUrl;
 
-export const getApiUrl = (path: string): string => {
+export const normalizeApiUrl = (baseUrl: string, path: string): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  if (!API_BASE_URL) {
-    return cleanPath;
+  if (!baseUrl) return cleanPath;
+  const baseEndsWithApi = baseUrl.endsWith('/api');
+  const pathStartsWithApi = cleanPath.startsWith('/api');
+  if (baseEndsWithApi && pathStartsWithApi) {
+    return `${baseUrl}${cleanPath.slice(4)}`;
   }
-  return `${API_BASE_URL}${cleanPath}`;
+  if (!baseEndsWithApi && !pathStartsWithApi) {
+    return `${baseUrl}/api${cleanPath}`;
+  }
+  return `${baseUrl}${cleanPath}`;
+};
+
+export const getApiUrl = (path: string): string => {
+  return normalizeApiUrl(API_BASE_URL, path);
 };

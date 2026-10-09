@@ -92,7 +92,7 @@ const BilingualField: React.FC<BilingualFieldProps> = ({
               onChange={(e) => onEnglishChange(e.target.value)}
               placeholder={englishPlaceholder || 'Enter in English...'}
               rows={2}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-normal focus:outline-none focus:border-orange-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-sm font-normal focus:outline-none focus:border-orange-500"
             />
           ) : (
             <input
@@ -100,7 +100,7 @@ const BilingualField: React.FC<BilingualFieldProps> = ({
               value={englishValue}
               onChange={(e) => onEnglishChange(e.target.value)}
               placeholder={englishPlaceholder || 'Enter in English...'}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-normal focus:outline-none focus:border-orange-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-sm font-normal focus:outline-none focus:border-orange-500"
             />
           )}
         </div>
@@ -131,7 +131,7 @@ const BilingualField: React.FC<BilingualFieldProps> = ({
               }}
               placeholder={teluguPlaceholder || 'తెలుగులో రాయండి...'}
               rows={2}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-normal focus:outline-none focus:border-orange-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-sm font-normal focus:outline-none focus:border-orange-500"
             />
           ) : (
             <input
@@ -142,7 +142,7 @@ const BilingualField: React.FC<BilingualFieldProps> = ({
                 onTeluguChange(e.target.value);
               }}
               placeholder={teluguPlaceholder || 'తెలుగులో రాయండి...'}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-normal focus:outline-none focus:border-orange-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-sm font-normal focus:outline-none focus:border-orange-500"
             />
           )}
         </div>

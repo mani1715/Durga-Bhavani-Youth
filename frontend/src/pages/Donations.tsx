@@ -1299,7 +1299,7 @@ export const Donations: React.FC = () => {
                       setDonorNameEnglish(e.target.value);
                     }}
                     placeholder="e.g. Ramesh"
-                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none min-h-[44px]"
                   />
                 </div>
 
@@ -1334,7 +1334,7 @@ export const Donations: React.FC = () => {
                       setIsTeluguManuallyEdited(true);
                     }}
                     placeholder="ఉదా: రమేష్"
-                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-base sm:text-sm font-medium text-slate-900 focus:outline-none min-h-[44px]"
                   />
                   {transliterationSuggestions.length > 1 && !isTeluguManuallyEdited && (
                     <div className="flex items-center gap-1.5 mt-1 overflow-x-auto text-xs text-slate-500">
@@ -1420,7 +1420,7 @@ export const Donations: React.FC = () => {
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none cursor-pointer min-h-[44px]"
                 >
                   {categories.filter(c => c.is_active).map((c) => (
                     <option key={c.id} value={c.id}>{lang === 'te' ? (c.name_telugu || c.name) : (c.name_english || c.name)}</option>
@@ -1441,7 +1441,7 @@ export const Donations: React.FC = () => {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="₹ 1,116"
-                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-base sm:text-sm font-medium text-slate-900 focus:outline-none min-h-[44px]"
                   />
                 </div>
 
@@ -1454,7 +1454,7 @@ export const Donations: React.FC = () => {
                     required
                     value={receivedDate}
                     onChange={(e) => setReceivedDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none min-h-[44px]"
                   />
                 </div>
               </div>
@@ -1467,7 +1467,7 @@ export const Donations: React.FC = () => {
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none cursor-pointer min-h-[44px]"
                   >
                     <option value="CASH">CASH (నగదు)</option>
                     <option value="UPI">UPI (ఫోన్‌పే / గూగుల్‌పే)</option>
@@ -1486,14 +1486,14 @@ export const Donations: React.FC = () => {
                       value={villageTelugu}
                       onChange={(e) => setVillageTelugu(e.target.value)}
                       placeholder="తెలుగు (గరువుపాలెం)"
-                      className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-2.5 py-2 text-base sm:text-xs text-slate-900 focus:outline-none min-h-[44px]"
                     />
                     <input
                       type="text"
                       value={villageEnglish}
                       onChange={(e) => setVillageEnglish(e.target.value)}
                       placeholder="English (Garuvupalem)"
-                      className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-2.5 py-2 text-base sm:text-xs text-slate-900 focus:outline-none min-h-[44px]"
                     />
                   </div>
                 </div>
@@ -1508,7 +1508,7 @@ export const Donations: React.FC = () => {
                   value={donorMobile}
                   onChange={(e) => setDonorMobile(e.target.value)}
                   placeholder="e.g. 9876543210"
-                  className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none min-h-[44px]"
                 />
               </div>
 

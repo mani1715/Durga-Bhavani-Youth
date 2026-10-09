@@ -40,6 +40,13 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     document.documentElement.lang = lang;
+    try {
+      if (!localStorage.getItem('festival_language')) {
+        localStorage.setItem('festival_language', lang);
+      }
+    } catch {
+      // storage unavailable fallback
+    }
   }, [lang]);
 
   const t = translations[lang] || translations.te;
