@@ -403,22 +403,33 @@ def get_public_donations(
         else:
             receipt_query = receipt_query.order_by(Receipt.receipt_date.desc(), Receipt.id.desc())
 
+        def _has_telugu(text: Optional[str]) -> bool:
+            return bool(text and any('\u0c00' <= char <= '\u0c7f' for char in text))
+
         receipt_results = receipt_query.all()
         for r, d in receipt_results:
             if r.is_anonymous:
                 disp_name_te = "అజ్ఞాత దాత"
                 disp_name_en = "Anonymous Donor"
                 disp_name = "అజ్ఞాత దాత"
-            elif r.public_display_name and r.public_display_name.strip():
-                disp_name = r.public_display_name.strip()
-                disp_name_te = r.public_display_name.strip()
-                disp_name_en = r.public_display_name.strip()
             else:
-                raw_te = r.donor_name_telugu or (d.name_telugu if d else None)
-                raw_en = r.donor_name_english or (d.name_english if d else None)
-                raw_orig = d.name if (d and d.name and d.name != "N/A") else "అజ్ఞాత దాత"
-                disp_name_te = raw_te or raw_orig
-                disp_name_en = raw_en or raw_orig
+                # 1. Resolve Telugu donor name
+                raw_te = (r.donor_name_telugu or "").strip() or ((d.name_telugu if d else "") or "").strip()
+                if not raw_te and r.public_display_name and _has_telugu(r.public_display_name):
+                    raw_te = r.public_display_name.strip()
+                if not raw_te and d and d.name and _has_telugu(d.name):
+                    raw_te = d.name.strip()
+
+                # 2. Resolve English donor name
+                raw_en = (r.donor_name_english or "").strip() or ((d.name_english if d else "") or "").strip()
+                if not raw_en and r.public_display_name and not _has_telugu(r.public_display_name):
+                    raw_en = r.public_display_name.strip()
+                if not raw_en and d and d.name and not _has_telugu(d.name) and d.name not in ("N/A", "undefined"):
+                    raw_en = d.name.strip()
+
+                # 3. Fallbacks between languages
+                disp_name_te = raw_te or raw_en or (r.public_display_name.strip() if r.public_display_name else None) or "అజ్ఞాత దాత"
+                disp_name_en = raw_en or (r.public_display_name.strip() if r.public_display_name and not _has_telugu(r.public_display_name) else None) or raw_te or "Anonymous Donor"
                 disp_name = disp_name_te
 
             cat_obj = cat_map.get(r.donation_category_id)
@@ -466,16 +477,31 @@ def get_public_donations(
             mat_query = mat_query.order_by(MaterialContribution.received_date.desc(), MaterialContribution.id.desc())
 
         mat_results = mat_query.all()
+        mat_donor_ids = [m.donor_id for m in mat_results if m.donor_id]
+        mat_donors = {don.id: don for don in db.query(Donor).filter(Donor.id.in_(mat_donor_ids)).all()} if mat_donor_ids else {}
+
         for m in mat_results:
             cat_obj = cat_map.get(m.donation_category_id)
             cat_telugu = cat_obj.name_telugu if cat_obj else "వస్తు రూప విరాళం"
             cat_name = cat_obj.name if cat_obj else "Material Contribution"
 
+            m_don = mat_donors.get(m.donor_id)
+            m_raw_te = (m_don.name_telugu if m_don else "").strip() if m_don else ""
+            m_raw_en = (m_don.name_english if m_don else "").strip() if m_don else ""
+
+            if not m_raw_te and _has_telugu(m.donor_name):
+                m_raw_te = m.donor_name.strip()
+            if not m_raw_en and not _has_telugu(m.donor_name) and m.donor_name not in ("N/A", "undefined"):
+                m_raw_en = m.donor_name.strip()
+
+            m_disp_te = m_raw_te or m_raw_en or m.donor_name or "అజ్ఞాత దాత"
+            m_disp_en = m_raw_en or m_raw_te or m.donor_name or "Anonymous Donor"
+
             items.append({
                 "id": m.id,
-                "donor_display_name": m.donor_name,
-                "donor_display_name_english": m.donor_name,
-                "donor_display_name_telugu": m.donor_name,
+                "donor_display_name": m_disp_te,
+                "donor_display_name_english": m_disp_en,
+                "donor_display_name_telugu": m_disp_te,
                 "type": "MATERIAL",
                 "amount": None,
                 "item_description": m.item_description,
