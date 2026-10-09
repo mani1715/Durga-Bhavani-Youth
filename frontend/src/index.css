@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-telugu: 'Noto Sans Telugu', Gautami, 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  }
+
+  html {
+    font-family: var(--font-telugu);
+    letter-spacing: normal !important;
+    font-weight: 400;
+    line-height: 1.7;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: clip;
+  }
+
+  body {
+    margin: 0;
+    background-color: #FFFDF9; /* Restrained Warm Cream */
+    color: #1E293B; /* Slate 800 */
+    font-family: var(--font-telugu);
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.7;
+    letter-spacing: normal;
+    overflow-x: clip;
+  }
+
+  /* Universal font inheritance so inputs, buttons, tables, selects, dialogs all use Noto Sans Telugu */
+  *, ::before, ::after {
+    font-family: inherit;
+    letter-spacing: normal;
+  }
+
+  input, button, select, textarea, optgroup {
+    font-family: inherit;
+    letter-spacing: normal;
+  }
+
+  /* Headings: Clean, restrained Telugu weights (500), natural line-height (1.5-1.6) */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-telugu);
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0 !important;
+  }
+
+  p, span, li, a, label, td, th {
+    letter-spacing: normal;
+  }
+
+  /* Avoid artificial bolding / smearing in Telugu: clamp heavy weights to clean 500 / 600 */
+  .font-black,
+  .font-extrabold {
+    font-weight: 500 !important;
+  }
+
+  .font-bold {
+    font-weight: 500 !important;
+  }
+
+  .font-semibold {
+    font-weight: 500 !important;
+  }
+
+  .font-medium {
+    font-weight: 500 !important;
+  }
+
+  .font-normal {
+    font-weight: 400 !important;
+  }
+
+  /* Prevent tight tracking which crushes vowel marks and conjuncts in Telugu */
+  .tracking-tighter,
+  .tracking-tight {
+    letter-spacing: normal !important;
+  }
+}
+
+/* Typography Utility Classes */
+.text-main-title {
+  font-size: 24px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+@media (min-width: 640px) {
+  .text-main-title {
+    font-size: 28px;
+    line-height: 1.5;
+  }
+}
+@media (min-width: 1024px) {
+  .text-main-title {
+    font-size: 32px;
+    line-height: 1.5;
+  }
+}
+
+.text-section-heading {
+  font-size: 22px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+@media (min-width: 640px) {
+  .text-section-heading {
+    font-size: 25px;
+    line-height: 1.5;
+  }
+}
+
+.text-sub-heading {
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.text-body {
+  font-size: 16px;
+  line-height: 1.7;
+  font-weight: 400;
+}
+
+.text-secondary {
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* Card utility */
+.glass-panel {
+  background: #FFFFFF;
+  border: 1px solid #F1F5F9;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+}
+
+/* Devotional warm content panels & hero cards */
+.bg-warm-panel {
+  background-color: rgba(255, 253, 249, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.bg-hero-card {
+  background-color: rgba(255, 253, 249, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+

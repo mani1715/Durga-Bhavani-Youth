@@ -1,0 +1,74 @@
+# Environment Variables and Secrets
+.env
+.env.*
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/venv/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database files & SQLite backups
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.db.backup*
+backend/*.db*
+
+# Private database dumps & backups
+*backup*.json
+postgres_backup*.json
+*.json.backup*
+scratch/
+backend/*backup*.json
+backend/postgres_backup*.json
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temporary & Storage
+backend/storage/
+storage/
+plate_center_cup.png
+test_selenium.png
+*.png.bak
+frontend/public/test_*
+frontend/public/debug_*
+frontend/public/ammavaru_refined_mask.png
+frontend/public/ammavaru_grabcut.png
+
+

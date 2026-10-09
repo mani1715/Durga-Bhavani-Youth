@@ -1,0 +1,25 @@
+# Backend environment & secrets
+.env
+.env.*
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+ENV/
+
+# Database files & backups
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.db.backup*
+*backup*.json
+postgres_backup*.json
+*.json.backup*
+test_backend_e2e.py
+
+# Local Storage
+storage/
