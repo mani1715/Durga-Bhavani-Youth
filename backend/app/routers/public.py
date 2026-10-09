@@ -15,7 +15,13 @@ from app.models.schemas import (
     PublicDonationsResponse, PublicContributionItemSchema, PublicCategoryPillSchema
 )
 
+from app.services.cache import public_cache
+
 router = APIRouter(prefix="/public", tags=["Public Festival Site"])
+
+def invalidate_public_cache(prefix: Optional[str] = None):
+    """Invalidates public cache safely when committee changes occur."""
+    public_cache.invalidate(prefix)
 
 def get_garuvupalem_org_and_event(db: Session):
     # Fetch Garuvupalem Durga Bhavani Youth organization
@@ -43,9 +49,13 @@ def get_garuvupalem_org_and_event(db: Session):
 
 @router.get("/info")
 def get_public_festival_info(db: Session = Depends(get_db)):
+    cached = public_cache.get("public:info")
+    if cached:
+        return cached
+
     org, event = get_garuvupalem_org_and_event(db)
     
-    return {
+    res = {
         "organization_id": org.id,
         "event_id": event.id if event else None,
         "village_name_telugu": "గరువుపాలెం",
@@ -65,14 +75,20 @@ def get_public_festival_info(db: Session = Depends(get_db)):
         "logo_url": org.logo or "/committee-photo-logo.webp",
         "banner_image_url": org.banner_image_url or "/ammavaru-hero-green.webp"
     }
+    public_cache.set("public:info", res, ttl_seconds=60)
+    return res
 
 @router.get("/programme/today")
 def get_today_programme(db: Session = Depends(get_db)):
-    org, event = get_garuvupalem_org_and_event(db)
-    
     # Calculate current date in Asia/Kolkata (UTC + 5:30)
     kolkata_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     today_str = kolkata_now.strftime("%Y-%m-%d")
+    cache_key = f"public:today:{today_str}"
+    cached = public_cache.get(cache_key)
+    if cached:
+        return cached
+
+    org, event = get_garuvupalem_org_and_event(db)
     
     # Query first and last published festival days
     first_day = db.query(FestivalDay).filter(
@@ -117,13 +133,15 @@ def get_today_programme(db: Session = Depends(get_db)):
             if status_phase == "AFTER_FESTIVAL"
             else "కార్యక్రమ వివరాలు త్వరలో తెలియజేస్తాము"
         )
-        return {
+        res = {
             "status_phase": status_phase,
             "today_date": today_str,
             "is_upcoming": is_upcoming,
             "message": message,
             "day": None
         }
+        public_cache.set(cache_key, res, ttl_seconds=15)
+        return res
 
     # Fetch activities & pooja couples
     activities = db.query(ProgrammeActivity).filter(
@@ -141,7 +159,7 @@ def get_today_programme(db: Session = Depends(get_db)):
         DayPujaMaterial.is_published == True
     ).order_by(DayPujaMaterial.display_order.asc(), DayPujaMaterial.created_at.asc()).all()
 
-    return {
+    res = {
         "status_phase": status_phase,
         "current_date": today_str,
         "is_upcoming": is_upcoming,
@@ -204,9 +222,16 @@ def get_today_programme(db: Session = Depends(get_db)):
             ]
         }
     }
+    public_cache.set(cache_key, res, ttl_seconds=15)
+    return res
 
 @router.get("/programme/all")
 def get_all_festival_days(db: Session = Depends(get_db)):
+    cache_key = "public:programme:all"
+    cached = public_cache.get(cache_key)
+    if cached:
+        return cached
+
     org, event = get_garuvupalem_org_and_event(db)
     
     if not event:
@@ -315,6 +340,7 @@ def get_all_festival_days(db: Session = Depends(get_db)):
             ]
         })
 
+    public_cache.set(cache_key, output, ttl_seconds=15)
     return output
 
 @router.get("/donations", response_model=PublicDonationsResponse)
@@ -327,6 +353,11 @@ def get_public_donations(
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
+    cache_key = f"public:donations:{search or ''}:{category_id or ''}:{contribution_type}:{sort}:{page}:{limit}"
+    cached = public_cache.get(cache_key)
+    if cached:
+        return cached
+
     org, event = get_garuvupalem_org_and_event(db)
     if not event:
         return {
@@ -388,6 +419,9 @@ def get_public_donations(
     # 3. Build List of Items based on contribution_type ("MONEY", "MATERIAL", "ALL")
     items = []
 
+    def _has_telugu(text: Optional[str]) -> bool:
+        return bool(text and any('\u0c00' <= char <= '\u0c7f' for char in text))
+
     # A. Monetary Donations (Excluding test data)
     if contribution_type in ("ALL", "MONEY"):
         receipt_query = db.query(Receipt, Donor).outerjoin(Donor, Receipt.donor_id == Donor.id).filter(
@@ -407,9 +441,6 @@ def get_public_donations(
             receipt_query = receipt_query.order_by(Receipt.amount.desc(), Receipt.receipt_date.desc(), Receipt.id.desc())
         else:
             receipt_query = receipt_query.order_by(Receipt.receipt_date.desc(), Receipt.id.desc())
-
-        def _has_telugu(text: Optional[str]) -> bool:
-            return bool(text and any('\u0c00' <= char <= '\u0c7f' for char in text))
 
         receipt_results = receipt_query.all()
         for r, d in receipt_results:
@@ -539,7 +570,7 @@ def get_public_donations(
 
     last_updated_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
 
-    return {
+    res = {
         "total_received": total_money_received,
         "donors_count": total_monetary_donors_count,
         "materials_count": total_materials_count,
@@ -553,9 +584,20 @@ def get_public_donations(
         "total_pages": total_pages,
         "last_updated": last_updated_str
     }
+    public_cache.set(cache_key, res, ttl_seconds=10)
+    return res
 
 @router.get("/gallery")
-def get_public_gallery(db: Session = Depends(get_db)):
+def get_public_gallery(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    cache_key = f"public:gallery:{page}:{limit}"
+    cached = public_cache.get(cache_key)
+    if cached:
+        return cached
+
     org, event = get_garuvupalem_org_and_event(db)
     if not event:
         return []
@@ -567,22 +609,34 @@ def get_public_gallery(db: Session = Depends(get_db)):
         FestivalDay.is_published == True
     ).order_by(FestivalDay.day_number.asc()).all()
 
+    if not days:
+        return []
+
+    day_ids = [d.id for d in days]
+
     from app.services.storage import get_storage_service
+    from collections import defaultdict
     storage = get_storage_service()
+
+    # Batch fetch all photos for all days in a single query (fixes N+1)
+    photos_by_day = defaultdict(list)
+    all_photos = db.query(DayPhoto).filter(
+        DayPhoto.festival_day_id.in_(day_ids),
+        DayPhoto.is_published == True
+    ).order_by(DayPhoto.display_order.asc(), DayPhoto.created_at.desc()).all()
+
+    for p in all_photos:
+        photos_by_day[p.festival_day_id].append(p)
 
     albums = []
     for day in days:
-        photos = db.query(DayPhoto).filter(
-            DayPhoto.festival_day_id == day.id,
-            DayPhoto.is_published == True
-        ).order_by(DayPhoto.display_order.asc(), DayPhoto.created_at.desc()).all()
-
-        if not photos:
+        day_photos = photos_by_day.get(day.id, [])
+        if not day_photos:
             continue
 
         photo_list = []
         cover_url = ""
-        for p in photos:
+        for p in day_photos:
             url = storage.get_file_url(p.storage_key, is_public=True)
             if p.is_cover or not cover_url:
                 cover_url = url
@@ -604,10 +658,18 @@ def get_public_gallery(db: Session = Depends(get_db)):
             "photos": photo_list
         })
 
-    return albums
+    # Paginate albums
+    offset = (page - 1) * limit
+    paginated_albums = albums[offset:offset + limit]
+    public_cache.set(cache_key, paginated_albums, ttl_seconds=30)
+    return paginated_albums
 
 @router.get("/announcements")
 def get_public_announcements(db: Session = Depends(get_db)):
+    cached = public_cache.get("public:announcements")
+    if cached:
+        return cached
+
     org, event = get_garuvupalem_org_and_event(db)
     
     announcements = db.query(Announcement).filter(
@@ -624,7 +686,7 @@ def get_public_announcements(db: Session = Depends(get_db)):
             Sponsor.is_published == True
         ).all()
 
-    return {
+    res = {
         "announcements": [
             {
                 "id": a.id,
@@ -644,3 +706,5 @@ def get_public_announcements(db: Session = Depends(get_db)):
             } for s in sponsors
         ]
     }
+    public_cache.set("public:announcements", res, ttl_seconds=30)
+    return res

@@ -308,19 +308,34 @@ export const LandingPage: React.FC = () => {
     }
   }, [donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort]);
 
-  // Initial Load + 15s Polling (paused when hidden) + Window Focus Refresh
+  // Initial Load + Staggered Polling (15s - 23s randomized per visitor session) + Window Focus Refresh
   useEffect(() => {
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    let isCancelled = false;
+
     fetchPublicData();
     fetchDonations(donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort);
 
-    const interval = setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      fetchPublicData();
-      fetchDonations(donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort);
-    }, 15000);
+    const scheduleNextPoll = () => {
+      if (isCancelled) return;
+      // Stagger visitors across 15s to 23s to prevent synchronized traffic spikes (thundering herd)
+      const jitteredDelay = 15000 + Math.floor(Math.random() * 8000);
+      timerId = setTimeout(async () => {
+        if (isCancelled) return;
+        if (document.visibilityState === 'visible') {
+          await Promise.allSettled([
+            fetchPublicData(),
+            fetchDonations(donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort)
+          ]);
+        }
+        scheduleNextPoll();
+      }, jitteredDelay);
+    };
+
+    scheduleNextPoll();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && !isCancelled) {
         fetchPublicData();
         fetchDonations(donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort);
       }
@@ -329,7 +344,8 @@ export const LandingPage: React.FC = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      clearInterval(interval);
+      isCancelled = true;
+      if (timerId) clearTimeout(timerId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (publicAbortRef.current) publicAbortRef.current.abort();
       if (donationsAbortRef.current) donationsAbortRef.current.abort();
@@ -1297,6 +1313,8 @@ export const LandingPage: React.FC = () => {
                     src="/ammavaru-red-gold.webp" 
                     alt={lang === 'te' ? 'శ్రీ కనకదుర్గా అమ్మవారు (ఎరుపు మరియు స్వర్ణ అలంకరణ)' : 'Sri Kanaka Durga Ammavaru (Sacred Red & Gold Form)'}
                     className="w-full max-h-[320px] object-contain rounded-xl hover:scale-102 transition-transform duration-300"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       if (target.src !== '/ammavaru-red-gold.jpg') target.src = '/ammavaru-red-gold.jpg';
@@ -1371,6 +1389,8 @@ export const LandingPage: React.FC = () => {
                       <img 
                         src={photo.url} 
                         alt={photo.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300" 
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">

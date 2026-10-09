@@ -18,6 +18,7 @@ from app.models.schemas import ReceiptCreate, ReceiptResponse, ReceiptCancelRequ
 from app.services.pdf_generator import generate_receipt_pdf
 from app.services.audit import write_audit_log
 from app.services.storage import get_storage_service
+from app.services.cache import public_cache
 
 router = APIRouter(prefix="/receipts", tags=["Receipts"])
 
@@ -315,6 +316,8 @@ def create_receipt(
             "cancelled_by": receipt.cancelled_by,
             "cancellation_reason": receipt.cancellation_reason
         }
+        public_cache.invalidate("public:donations")
+        return res
     except HTTPException:
         db.rollback()
         raise
@@ -429,6 +432,7 @@ def cancel_receipt(
     
     db.commit()
     db.refresh(receipt)
+    public_cache.invalidate("public:donations")
     return receipt
 
 @router.delete("/{receipt_id}")
@@ -452,6 +456,7 @@ def delete_receipt(
     )
     db.delete(receipt)
     db.commit()
+    public_cache.invalidate("public:donations")
     return {"message": "Receipt deleted successfully"}
 
 @router.put("/{receipt_id}", response_model=ReceiptResponse)
