@@ -254,14 +254,12 @@ export const FestivalManagement: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         setDays(data);
-        if (data.length > 0 && !selectedDayId) {
-          setSelectedDayId(data[0].id);
-        }
+        setSelectedDayId(prev => prev || (data.length > 0 ? data[0].id : ''));
       }
     } catch (err) {
       console.error(err);
     }
-  }, [token, selectedDayId]);
+  }, [token]);
 
   // Fetch Settings
   const fetchSettings = useCallback(async () => {
@@ -364,6 +362,12 @@ export const FestivalManagement: React.FC = () => {
       fetchPhotos(selectedDayId);
     }
   }, [selectedDayId, fetchCouples, fetchPhotos]);
+
+  useEffect(() => {
+    if (editDayModal?.id) {
+      fetchDayMaterials(editDayModal.id);
+    }
+  }, [editDayModal?.id, fetchDayMaterials]);
 
   // Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -679,26 +683,27 @@ export const FestivalManagement: React.FC = () => {
     setMaterialModal(true);
   };
 
-  // Save Puja Material (Add or Edit)
+  // Save Puja Material (Add or Edit Modal)
   const handleSaveMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editDayModal) return;
-    if (!materialForm.item_name_telugu.trim()) {
-      alert(lang === 'en' ? 'Item name in Telugu is required.' : 'సామగ్రి పేరు (తెలుగు) తప్పనిసరి.');
+    const teName = materialForm.item_name_telugu.trim() || materialForm.item_name_english.trim();
+    if (!teName) {
+      alert(lang === 'en' ? 'Item name is required.' : 'సామగ్రి పేరు తప్పనిసరి.');
       return;
     }
     try {
       const payload = {
-        item_name_telugu: materialForm.item_name_telugu.trim(),
+        item_name_telugu: teName,
         item_name_english: materialForm.item_name_english.trim() || undefined,
         quantity: materialForm.quantity.trim() || undefined,
         unit: materialForm.unit.trim() || undefined,
         unit_telugu: materialForm.unit_telugu.trim() || undefined,
         instructions_telugu: materialForm.instructions_telugu.trim() || undefined,
         instructions_english: materialForm.instructions_english.trim() || undefined,
-        provided_by: materialForm.provided_by,
+        provided_by: materialForm.provided_by || 'DEVOTEES',
         programme_activity_id: materialForm.programme_activity_id || undefined,
-        is_published: materialForm.is_published
+        is_published: materialForm.is_published !== false
       };
 
       let res;
@@ -725,7 +730,67 @@ export const FestivalManagement: React.FC = () => {
       if (res.ok) {
         fetchDayMaterials(editDayModal.id);
         setMaterialModal(false);
+        setEditingMaterial(null);
         setMsg({ type: 'success', text: lang === 'en' ? 'Puja material saved successfully!' : 'పూజా సామగ్రి విజయవంతంగా భద్రపరచబడింది!' });
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Error saving material');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error saving material');
+    }
+  };
+
+  // Quick Add Puja Material directly from the inline form
+  const handleSaveInlineMaterial = async () => {
+    if (!editDayModal) return;
+    const teName = materialForm.item_name_telugu.trim() || materialForm.item_name_english.trim();
+    if (!teName) {
+      alert(lang === 'en' ? 'Please enter material name (Telugu or English).' : 'దయచేసి పూజా సామగ్రి పేరును నమోదు చేయండి.');
+      return;
+    }
+    try {
+      const payload = {
+        item_name_telugu: teName,
+        item_name_english: materialForm.item_name_english.trim() || undefined,
+        quantity: materialForm.quantity.trim() || undefined,
+        unit: materialForm.unit.trim() || undefined,
+        unit_telugu: materialForm.unit_telugu.trim() || undefined,
+        instructions_telugu: materialForm.instructions_telugu.trim() || undefined,
+        instructions_english: materialForm.instructions_english.trim() || undefined,
+        provided_by: materialForm.provided_by || 'DEVOTEES',
+        programme_activity_id: materialForm.programme_activity_id || undefined,
+        is_published: materialForm.is_published !== false
+      };
+
+      const res = await fetch(`/api/festival-admin/days/${editDayModal.id}/materials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        fetchDayMaterials(editDayModal.id);
+        setMaterialForm({
+          item_name_english: '',
+          item_name_telugu: '',
+          quantity: '',
+          unit: '',
+          unit_telugu: '',
+          instructions_english: '',
+          instructions_telugu: '',
+          provided_by: 'DEVOTEES',
+          programme_activity_id: '',
+          is_published: true
+        });
+        setMsg({
+          type: 'success',
+          text: lang === 'en' ? 'Puja material added successfully!' : 'పూజా సామగ్రి విజయవంతంగా జతచేయబడింది!'
+        });
       } else {
         const err = await res.json();
         alert(err.detail || 'Error saving material');
@@ -1873,10 +1938,135 @@ export const FestivalManagement: React.FC = () => {
                   <button
                     type="button"
                     onClick={openAddMaterialModal}
-                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1 shadow-xs cursor-pointer"
+                    className="px-3 py-1.5 bg-orange-100 hover:bg-orange-200 text-orange-900 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1 border border-orange-200 cursor-pointer"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    <span>{lang === 'en' ? 'Add Material' : 'సామగ్రి జతచేయి'}</span>
+                    <span>{lang === 'en' ? 'Detailed Form' : 'వివరమైన ఫారమ్'}</span>
+                  </button>
+                </div>
+
+                {/* Inline Add Material Form */}
+                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2.5">
+                  <p className="text-xs font-semibold text-amber-950 flex items-center gap-1.5">
+                    <span>🪔</span>
+                    <span>{lang === 'en' ? 'Add Puja Material to Bring:' : 'కొత్త పూజా సామగ్రిని జతచేయి:'}</span>
+                  </p>
+                  
+                  {/* Row 1: Item Names */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder={lang === 'en' ? 'Material Name (Telugu, e.g. కొబ్బరికాయలు) *' : 'సామగ్రి పేరు (తెలుగు, ఉదా: కొబ్బరికాయలు) *'}
+                      value={materialForm.item_name_telugu}
+                      onChange={(e) => setMaterialForm({ ...materialForm, item_name_telugu: e.target.value })}
+                      className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-normal focus:outline-none focus:border-amber-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder={lang === 'en' ? 'Material Name (English, e.g. Coconuts)' : 'సామగ్రి పేరు (ఇంగ్లీష్, e.g. Coconuts)'}
+                      value={materialForm.item_name_english}
+                      onChange={(e) => setMaterialForm({ ...materialForm, item_name_english: e.target.value })}
+                      className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-normal focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  {/* Row 2: Quantity & Units */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      placeholder={lang === 'en' ? 'Quantity (e.g. 2, 100g)' : 'పరిమాణం (ఉదా: 2, 100g)'}
+                      value={materialForm.quantity}
+                      onChange={(e) => setMaterialForm({ ...materialForm, quantity: e.target.value })}
+                      className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-normal"
+                    />
+                    <input
+                      type="text"
+                      placeholder={lang === 'en' ? 'Unit (Telugu, e.g. కాయలు)' : 'కొలత (తెలుగు, ఉదా: కాయలు)'}
+                      value={materialForm.unit_telugu}
+                      onChange={(e) => setMaterialForm({ ...materialForm, unit_telugu: e.target.value })}
+                      className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-normal"
+                    />
+                    <input
+                      type="text"
+                      placeholder={lang === 'en' ? 'Unit (English, e.g. pieces)' : 'కొలత (ఇంగ్లీష్, e.g. pieces)'}
+                      value={materialForm.unit}
+                      onChange={(e) => setMaterialForm({ ...materialForm, unit: e.target.value })}
+                      className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-normal"
+                    />
+                  </div>
+
+                  {/* Row 3: Provided by & Associated Activity */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
+                    <div className="flex items-center gap-3 bg-white px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs">
+                      <span className="text-slate-600 font-medium">{lang === 'en' ? 'Provided by:' : 'సమకూర్చాలి:'}</span>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="inlineMatProvided"
+                          checked={materialForm.provided_by === 'DEVOTEES'}
+                          onChange={() => setMaterialForm({ ...materialForm, provided_by: 'DEVOTEES' })}
+                          className="text-amber-600"
+                        />
+                        <span className="font-medium text-amber-950">{lang === 'en' ? 'Devotees Bring' : 'భక్తులు'}</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer ml-1">
+                        <input
+                          type="radio"
+                          name="inlineMatProvided"
+                          checked={materialForm.provided_by === 'COMMITTEE'}
+                          onChange={() => setMaterialForm({ ...materialForm, provided_by: 'COMMITTEE' })}
+                          className="text-blue-600"
+                        />
+                        <span className="font-medium text-blue-900">{lang === 'en' ? 'Committee' : 'కమిటీ'}</span>
+                      </label>
+                    </div>
+
+                    {editDayModal.activities?.length > 0 ? (
+                      <select
+                        value={materialForm.programme_activity_id}
+                        onChange={(e) => setMaterialForm({ ...materialForm, programme_activity_id: e.target.value })}
+                        className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800"
+                      >
+                        <option value="">{lang === 'en' ? '-- Whole Day (All Pujas) --' : '-- రోజంతటికీ (అన్ని పూజలకూ) --'}</option>
+                        {editDayModal.activities.map((act: any) => (
+                          <option key={act.id} value={act.id}>
+                            {act.title_telugu} {act.title_english ? `(${act.title_english})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="text-xs text-slate-500 italic px-1">
+                        {lang === 'en' ? 'Applies to the whole day' : 'రోజంతటికీ వర్తిస్తుంది'}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 4: Optional Instructions */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder={lang === 'en' ? 'Instructions (Telugu, optional)' : 'సూచనలు (తెలుగు, ఐచ్ఛికం)'}
+                      value={materialForm.instructions_telugu}
+                      onChange={(e) => setMaterialForm({ ...materialForm, instructions_telugu: e.target.value })}
+                      className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-normal"
+                    />
+                    <input
+                      type="text"
+                      placeholder={lang === 'en' ? 'Instructions (English, optional)' : 'సూచనలు (ఇంగ్లీష్, ఐచ్ఛికం)'}
+                      value={materialForm.instructions_english}
+                      onChange={(e) => setMaterialForm({ ...materialForm, instructions_english: e.target.value })}
+                      className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-normal"
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="button"
+                    onClick={handleSaveInlineMaterial}
+                    className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>{lang === 'en' ? '+ Add Puja Material' : '+ పూజా సామగ్రిని జతచేయి'}</span>
                   </button>
                 </div>
 
@@ -1991,7 +2181,7 @@ export const FestivalManagement: React.FC = () => {
 
       {/* MODAL: EDIT SPECIFIC ACTIVITY */}
       {editingActivity && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
           <form onSubmit={handleSaveEditedActivity} className="bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] overflow-y-auto p-6 sm:p-7 space-y-5 shadow-2xl border border-orange-200">
             <div className="flex items-center justify-between border-b border-orange-100 pb-3">
               <div>
@@ -2336,7 +2526,7 @@ export const FestivalManagement: React.FC = () => {
 
       {/* MODAL: ADD / EDIT PUJA MATERIAL */}
       {materialModal && editDayModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
           <form onSubmit={handleSaveMaterial} className="bg-white rounded-3xl max-w-xl w-full max-h-[88vh] overflow-y-auto p-6 sm:p-7 space-y-4 shadow-2xl border border-orange-200">
             <div className="flex items-center justify-between border-b border-orange-100 pb-3">
               <div>

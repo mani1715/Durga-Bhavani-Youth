@@ -199,11 +199,55 @@ def get_admin_festival_days(
 ):
     org_id = current_user.organization_id
     days = db.query(FestivalDay).filter(FestivalDay.organization_id == org_id).order_by(FestivalDay.day_number.asc()).all()
+    if not days:
+        return []
+
+    day_ids = [d.id for d in days]
+
+    # Batch 1: All activities
+    all_activities = db.query(ProgrammeActivity).filter(
+        ProgrammeActivity.festival_day_id.in_(day_ids)
+    ).order_by(ProgrammeActivity.display_order.asc()).all()
+
+    # Batch 2: All couples
+    all_couples = db.query(PoojaCouple).filter(
+        PoojaCouple.festival_day_id.in_(day_ids)
+    ).order_by(PoojaCouple.display_order.asc()).all()
+
+    # Batch 3: All photos
+    all_photos = db.query(DayPhoto).filter(
+        DayPhoto.festival_day_id.in_(day_ids)
+    ).all()
+
+    # Batch 4: All puja materials
+    all_materials = db.query(DayPujaMaterial).filter(
+        DayPujaMaterial.festival_day_id.in_(day_ids),
+        DayPujaMaterial.organization_id == org_id
+    ).order_by(DayPujaMaterial.display_order.asc(), DayPujaMaterial.created_at.asc()).all()
+
+    # Group in memory
+    activities_by_day = {}
+    for a in all_activities:
+        activities_by_day.setdefault(a.festival_day_id, []).append(a)
+
+    couples_by_day = {}
+    for c in all_couples:
+        couples_by_day.setdefault(c.festival_day_id, []).append(c)
+
+    photos_by_day = {}
+    for p in all_photos:
+        photos_by_day.setdefault(p.festival_day_id, []).append(p)
+
+    materials_by_day = {}
+    for m in all_materials:
+        materials_by_day.setdefault(m.festival_day_id, []).append(m)
+
     output = []
     for d in days:
-        activities = db.query(ProgrammeActivity).filter(ProgrammeActivity.festival_day_id == d.id).order_by(ProgrammeActivity.display_order.asc()).all()
-        couples = db.query(PoojaCouple).filter(PoojaCouple.festival_day_id == d.id).order_by(PoojaCouple.display_order.asc()).all()
-        photos = db.query(DayPhoto).filter(DayPhoto.festival_day_id == d.id).all()
+        activities = activities_by_day.get(d.id, [])
+        couples = couples_by_day.get(d.id, [])
+        photos = photos_by_day.get(d.id, [])
+        materials = materials_by_day.get(d.id, [])
         output.append({
             "id": d.id,
             "date": d.date,
@@ -222,13 +266,40 @@ def get_admin_festival_days(
                     "time_str": a.time_str,
                     "time_str_english": a.time_str_english,
                     "activity_type": a.activity_type,
+                    "allowed_participation_types": a.allowed_participation_types,
+                    "who_can_participate_telugu": a.who_can_participate_telugu,
+                    "who_can_participate_english": a.who_can_participate_english,
+                    "what_to_bring_telugu": a.what_to_bring_telugu,
+                    "what_to_bring_english": a.what_to_bring_english,
+                    "participation_instructions_telugu": a.participation_instructions_telugu,
+                    "participation_instructions_english": a.participation_instructions_english,
+                    "arrival_instructions_telugu": a.arrival_instructions_telugu,
+                    "arrival_instructions_english": a.arrival_instructions_english,
                     "display_order": a.display_order,
                     "is_published": a.is_published
                 } for a in activities
             ],
+            "puja_materials": [
+                {
+                    "id": m.id,
+                    "festival_day_id": m.festival_day_id,
+                    "programme_activity_id": m.programme_activity_id,
+                    "item_name_telugu": m.item_name_telugu,
+                    "item_name_english": m.item_name_english,
+                    "quantity": m.quantity,
+                    "unit": m.unit,
+                    "unit_telugu": m.unit_telugu,
+                    "instructions_telugu": m.instructions_telugu,
+                    "instructions_english": m.instructions_english,
+                    "provided_by": m.provided_by,
+                    "display_order": m.display_order,
+                    "is_published": m.is_published
+                } for m in materials
+            ],
             "activities_count": len(activities),
             "pooja_couples_count": len(couples),
-            "photos_count": len(photos)
+            "photos_count": len(photos),
+            "puja_materials_count": len(materials)
         })
     return output
 
