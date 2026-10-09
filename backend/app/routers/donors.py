@@ -81,21 +81,21 @@ def get_donors(
         )
         
     results = query.all()
-    # Dynamically query sum of issued receipts for each donor to populate total_contribution response
+    from sqlalchemy import func
+    # Batch calculate totals in a single query instead of N sequential round-trips
+    totals_query = db.query(
+        Receipt.donor_id,
+        func.sum(Receipt.amount).label("total")
+    ).filter(
+        Receipt.organization_id == org_id,
+        Receipt.status == "ISSUED",
+        Receipt.donor_id.isnot(None)
+    ).group_by(Receipt.donor_id).all()
+    total_map = {row.donor_id: row.total for row in totals_query}
+
     for d in results:
-        receipts_sum = db.query(Receipt).filter(
-            Receipt.donor_id == d.id,
-            Receipt.status == "ISSUED"
-        ).all()
-        if (not d.name or d.name == "N/A" or d.name == "undefined") and receipts_sum:
-            for r in receipts_sum:
-                if r.custom_values and isinstance(r.custom_values, dict) and r.custom_values.get("donor_name") and r.custom_values.get("donor_name") != "N/A":
-                    d.name = r.custom_values.get("donor_name")
-                    db.flush()
-                    break
-        d.total_contribution = sum(r.amount for r in receipts_sum)
+        d.total_contribution = total_map.get(d.id, 0)
         
-    db.commit()
     return results
 
 @router.get("/{donor_id}")

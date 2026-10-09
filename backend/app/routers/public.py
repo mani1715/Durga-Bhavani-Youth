@@ -362,23 +362,28 @@ def get_public_donations(
     cat_map = {c.id: c for c in cats}
 
     # 2. Overall Festival-Wide Totals (Strictly ISSUED receipts and Published Materials, excluding test entries)
-    all_issued = db.query(Receipt).filter(
+    from sqlalchemy import func
+    total_money_received = db.query(func.coalesce(func.sum(Receipt.amount), 0)).filter(
         Receipt.organization_id == org.id,
         Receipt.event_id == event.id,
         Receipt.status == "ISSUED",
         (Receipt.is_test == False) | (Receipt.is_test.is_(None))
-    ).all()
+    ).scalar() or 0
 
-    total_money_received = sum(r.amount for r in all_issued)
-    total_monetary_donors_count = len(set(r.donor_id for r in all_issued if r.donor_id)) or len(all_issued)
+    total_monetary_donors_count = db.query(func.count(func.distinct(Receipt.donor_id))).filter(
+        Receipt.organization_id == org.id,
+        Receipt.event_id == event.id,
+        Receipt.status == "ISSUED",
+        Receipt.donor_id.isnot(None),
+        (Receipt.is_test == False) | (Receipt.is_test.is_(None))
+    ).scalar() or 0
 
-    all_published_materials = db.query(MaterialContribution).filter(
+    total_materials_count = db.query(func.count(MaterialContribution.id)).filter(
         MaterialContribution.organization_id == org.id,
         MaterialContribution.event_id == event.id,
         MaterialContribution.is_published == True,
         (MaterialContribution.is_test == False) | (MaterialContribution.is_test.is_(None))
-    ).all()
-    total_materials_count = len(all_published_materials)
+    ).scalar() or 0
 
     # 3. Build List of Items based on contribution_type ("MONEY", "MATERIAL", "ALL")
     items = []

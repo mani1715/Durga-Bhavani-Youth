@@ -117,33 +117,34 @@ export const Donations: React.FC = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
-      // 1. Fetch Receipts (Donations) with sort
+      // 1. Prepare endpoints
       let rcptUrl = `/api/receipts?event_id=${activeEvent.id}&sort=${ledgerSort}&search=${encodeURIComponent(search)}`;
       if (ledgerCategoryFilter !== 'ALL') rcptUrl += `&category_id=${encodeURIComponent(ledgerCategoryFilter)}`;
 
-      const res = await fetch(rcptUrl, { headers });
+      // 2. Fetch all 4 endpoints in parallel concurrently for fast sub-second loading
+      const [res, donorsRes, catRes, matRes] = await Promise.all([
+        fetch(rcptUrl, { headers }),
+        fetch(`/api/donors?search=${encodeURIComponent(search)}`, { headers }),
+        fetch('/api/settings/donation-categories?include_inactive=true', { headers }),
+        fetch(`/api/material-contributions?search=${encodeURIComponent(search)}`, { headers })
+      ]);
+
       if (res.ok) {
         const data = await res.json();
         setDonations(Array.isArray(data) ? data : []);
       }
 
-      // 2. Fetch Donors
-      const donorsRes = await fetch(`/api/donors?search=${encodeURIComponent(search)}`, { headers });
       if (donorsRes.ok) {
         const donorsData = await donorsRes.json();
         setDonorsList(Array.isArray(donorsData) ? donorsData : []);
       }
 
-      // 3. Fetch Categories (include_inactive for committee)
-      const catRes = await fetch('/api/settings/donation-categories?include_inactive=true', { headers });
       if (catRes.ok) {
         const cats = await catRes.json();
         setCategories(cats);
         if (cats.length > 0 && !categoryId) setCategoryId(cats[0].id);
       }
 
-      // 4. Fetch Materials
-      const matRes = await fetch(`/api/material-contributions?search=${encodeURIComponent(search)}`, { headers });
       if (matRes.ok) {
         const mats = await matRes.json();
         setMaterialsList(Array.isArray(mats) ? mats : []);

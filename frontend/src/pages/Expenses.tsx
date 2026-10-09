@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
-import { Plus, Eye, Search, Camera, Image, X } from 'lucide-react';
+import { Plus, Eye, Trash2, Search, Camera, Image, X } from 'lucide-react';
 import { formatFestivalDate } from '../utils/translations';
 
 import { useLanguage } from '../context/LanguageContext';
@@ -81,7 +81,9 @@ export const Expenses: React.FC = () => {
         if (ct.includes('application/json')) {
           const data = await res.json();
           setCategories(Array.isArray(data) ? data : []);
-          if (data.length > 0 && !categoryId) setCategoryId(data[0].id);
+          if (data.length > 0) {
+            setCategoryId((prev) => prev || data[0].id);
+          }
         }
       }
     } catch (e) {}
@@ -91,6 +93,12 @@ export const Expenses: React.FC = () => {
     fetchExpenses();
     fetchCategories();
   }, [activeEvent, token]);
+
+  useEffect(() => {
+    if (categories.length > 0 && !categoryId) {
+      setCategoryId(categories[0].id);
+    }
+  }, [categories, categoryId]);
 
   const handleFileSelect = (file: File | undefined) => {
     if (!file) return;
@@ -123,15 +131,29 @@ export const Expenses: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || Number(amount) <= 0) return alert('Please enter valid amount');
-    if (!vendorName.trim()) return alert('Please enter vendor name');
+    if (!amount || Number(amount) <= 0) {
+      return alert(lang === 'te' ? 'దయచేసి సరైన మొత్తాన్ని నమోదు చేయండి' : 'Please enter valid amount');
+    }
+    if (!vendorName.trim()) {
+      return alert(lang === 'te' ? 'దయచేసి వ్యాపారి లేదా దుకాణం పేరు నమోదు చేయండి' : 'Please enter vendor name');
+    }
+
+    const effectiveEventId = activeEvent?.id;
+    if (!effectiveEventId) {
+      return alert(lang === 'te' ? 'ఉత్సవ ఈవెంట్ అందుబాటులో లేదు. దయచేసి పేజీని రీఫ్రెష్ చేయండి.' : 'No active festival event found. Please refresh.');
+    }
+
+    const effectiveCatId = categoryId || (categories.length > 0 ? categories[0].id : '');
+    if (!effectiveCatId) {
+      return alert(lang === 'te' ? 'దయచేసి ఖర్చు వర్గాన్ని ఎంచుకోండి లేదా కొత్త వర్గాన్ని జోడించండి' : 'Please select or add an expense category');
+    }
 
     const payload = {
-      event_id: activeEvent?.id,
+      event_id: effectiveEventId,
       amount: parseFloat(amount),
       vendor_name: vendorName.trim(),
       description: description.trim(),
-      category_id: categoryId,
+      category_id: effectiveCatId,
       payment_method: paymentMethod,
       date: expenseDate,
       receipt_image: receiptImage || null
@@ -148,8 +170,8 @@ export const Expenses: React.FC = () => {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Failed to record expense');
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || (lang === 'te' ? 'ఖర్చు నమోదు విఫలమైంది' : 'Failed to record expense'));
       }
 
       setCreateModal(false);
@@ -159,12 +181,13 @@ export const Expenses: React.FC = () => {
       setReceiptImage('');
       fetchExpenses();
     } catch (err: any) {
-      alert(err.message || 'Error recording expense');
+      alert(err.message || (lang === 'te' ? 'ఖర్చు నమోదు చేయడంలో లోపం సంభవించింది' : 'Error recording expense'));
     }
   };
 
   const handleCancelExpense = async (id: string) => {
-    if (!confirm('Are you sure you want to void this expense?')) return;
+    const confirmMsg = lang === 'te' ? 'ఈ ఖర్చును రద్దు చేయాలనుకుంటున్నారా?' : 'Are you sure you want to void this expense?';
+    if (!confirm(confirmMsg)) return;
     try {
       const res = await fetch(`/api/expenses/${id}/cancel`, {
         method: 'POST',
@@ -174,6 +197,31 @@ export const Expenses: React.FC = () => {
         fetchExpenses();
       }
     } catch (e) {}
+  };
+
+  const handleDeleteExpense = async (id: string, expNo?: string) => {
+    const confirmMsg = lang === 'te'
+      ? `${expNo ? `${expNo} ` : ''}ఖర్చు రికార్డును శాశ్వతంగా తొలగించాలనుకుంటున్నారా?`
+      : `Are you sure you want to permanently delete expense ${expNo || ''}?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/expenses/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        if (selectedExpense?.id === id) {
+          setSelectedExpense(null);
+        }
+        fetchExpenses();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || (lang === 'te' ? 'ఖర్చును తొలగించలేకపోయాము.' : 'Failed to delete expense'));
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error deleting expense');
+    }
   };
 
   const openExpenseDetailsModal = async (item: any) => {
@@ -302,16 +350,28 @@ export const Expenses: React.FC = () => {
                       <button
                         onClick={() => openExpenseDetailsModal(item)}
                         className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                        title="View Details"
+                        title={lang === 'te' ? 'వివరాలు చూడండి' : 'View Details'}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       {item.status === 'RECORDED' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ORG_ADMIN') && (
                         <button
                           onClick={() => handleCancelExpense(item.id)}
-                          className="px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          className="px-2 py-1 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
+                          title={lang === 'te' ? 'ఖర్చును రద్దు చేయండి' : 'Void'}
                         >
                           Void
+                        </button>
+                      )}
+                      {(user?.role === 'SUPER_ADMIN' || user?.role === 'ORG_ADMIN') && (
+                        <button
+                          onClick={() => handleDeleteExpense(item.id, item.expense_number)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title={lang === 'te' ? 'ఖర్చును తొలగించండి' : 'Delete Expense'}
+                          aria-label="delete-expense-btn"
+                          data-testid="delete-expense-btn"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -408,7 +468,7 @@ export const Expenses: React.FC = () => {
                     </div>
                   ) : (
                     <select
-                      value={categoryId}
+                      value={categoryId || (categories.length > 0 ? categories[0].id : '')}
                       onChange={(e) => setCategoryId(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none cursor-pointer"
                     >
@@ -548,12 +608,24 @@ export const Expenses: React.FC = () => {
               )}
             </div>
 
-            <button
-              onClick={() => setSelectedExpense(null)}
-              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
-            >
-              ముగించు (Close)
-            </button>
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+              {(user?.role === 'SUPER_ADMIN' || user?.role === 'ORG_ADMIN') && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteExpense(selectedExpense.id, selectedExpense.expense_number)}
+                  className="py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{lang === 'te' ? 'తొలగించు (Delete)' : 'Delete Expense'}</span>
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedExpense(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+              >
+                {lang === 'te' ? 'ముగించు (Close)' : 'Close'}
+              </button>
+            </div>
           </div>
         </div>
       )}

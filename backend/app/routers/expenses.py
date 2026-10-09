@@ -161,3 +161,42 @@ def get_expense_receipt_url(
     storage = get_storage_service()
     url = storage.get_file_url(expense.bill_storage_key)
     return {"url": url}
+
+@router.delete("/{expense_id}")
+def delete_expense(
+    expense_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RoleChecker(["SUPER_ADMIN", "ORG_ADMIN"]))
+):
+    org_id = current_user.organization_id
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.organization_id == org_id
+    ).first()
+    
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense record not found")
+        
+    old_data = {
+        "expense_number": expense.expense_number,
+        "amount": str(expense.amount),
+        "vendor_name": expense.vendor_name,
+        "status": expense.status
+    }
+    
+    if expense.bill_storage_key:
+        try:
+            from app.services.storage import get_storage_service
+            storage = get_storage_service()
+            storage.delete_file(expense.bill_storage_key)
+        except Exception:
+            pass
+
+    write_audit_log(
+        db, org_id, current_user.id, "DELETE", "Expense", expense.id,
+        previous_value=old_data
+    )
+    
+    db.delete(expense)
+    db.commit()
+    return {"message": "Expense deleted successfully", "id": expense_id}

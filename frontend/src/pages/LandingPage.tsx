@@ -333,15 +333,21 @@ export const LandingPage: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (publicAbortRef.current) publicAbortRef.current.abort();
       if (donationsAbortRef.current) donationsAbortRef.current.abort();
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
   }, [fetchPublicData, fetchDonations, donationSearch, donationPage, donationCategoryFilter, donationTypeFilter, donationSort]);
 
-  // Search input change
+  const searchDebounceRef = React.useRef<any>(null);
+
+  // Search input change (debounced for smooth typing and fast responses)
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setDonationSearch(val);
     setDonationPage(1);
-    fetchDonations(val, 1, donationCategoryFilter, donationTypeFilter, donationSort);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      fetchDonations(val, 1, donationCategoryFilter, donationTypeFilter, donationSort);
+    }, 280);
   };
 
   // Category filter change
@@ -1114,7 +1120,7 @@ export const LandingPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100 text-sm font-normal text-slate-800">
-                  {loadingDonations ? (
+                  {loadingDonations && donationsData.donations.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-stone-500 font-medium">
                         {t.donations.loading}
@@ -1170,7 +1176,7 @@ export const LandingPage: React.FC = () => {
 
             {/* Mobile Card View (visible below md) */}
             <div className="md:hidden max-w-xl mx-auto space-y-3">
-              {loadingDonations ? (
+              {loadingDonations && donationsData.donations.length === 0 ? (
                 <div className="p-8 text-center bg-white rounded-2xl border border-stone-200 text-stone-500 font-medium">
                   {t.donations.loading}
                 </div>
