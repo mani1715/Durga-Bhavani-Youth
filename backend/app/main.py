@@ -161,10 +161,26 @@ if frontend_dist:
             raise HTTPException(status_code=404, detail="Not Found")
         target_file = os.path.join(frontend_dist, full_path)
         if os.path.isfile(target_file):
+            if full_path.endswith(".html"):
+                return FileResponse(
+                    target_file,
+                    headers={
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        "Pragma": "no-cache",
+                        "Expires": "0",
+                    }
+                )
             return FileResponse(target_file)
         index_file = os.path.join(frontend_dist, "index.html")
         if os.path.isfile(index_file):
-            return FileResponse(index_file)
+            return FileResponse(
+                index_file,
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                }
+            )
         raise HTTPException(status_code=404, detail="Frontend file not found")
 
 if __name__ == "__main__":
