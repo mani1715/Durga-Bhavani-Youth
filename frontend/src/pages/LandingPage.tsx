@@ -153,6 +153,15 @@ interface Announcement {
 import { useLanguage } from '../context/LanguageContext';
 import { buildApiUrl } from '../services/api';
 
+const getFormattedAlankaramTitle = (teluguName: string, englishName?: string, currentLang: Language = 'te') => {
+  if (currentLang === 'en') {
+    const en = (englishName || teluguName || '').trim();
+    return en.startsWith('Sri ') ? en : (en ? `Sri ${en}` : '');
+  }
+  const te = (teluguName || englishName || '').trim();
+  return te.startsWith('శ్రీ') ? te : (te ? `శ్రీ ${te}` : '');
+};
+
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -438,7 +447,7 @@ export const LandingPage: React.FC = () => {
           
           {/* Region 1: Left - Committee Photo Logo & Village Identity */}
           <div 
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none shrink min-w-0" 
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none shrink-0 sm:shrink min-w-0" 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-orange-300 shadow-xs shrink-0 bg-white">
@@ -448,16 +457,16 @@ export const LandingPage: React.FC = () => {
                 className="w-full h-full object-cover" 
               />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-xs sm:text-base text-slate-900 truncate">
+            <div className="flex flex-col justify-center min-w-0">
+              <div className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap">
+                <span className="font-bold text-[13px] sm:text-base text-slate-900 leading-tight whitespace-nowrap">
                   {lang === 'te' ? 'దుర్గాభవాని యూత్' : 'Durga Bhavani Youth'}
                 </span>
                 <span className="hidden sm:inline-block text-[11px] sm:text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 shrink-0">
                   {lang === 'te' ? 'గరువుపాలెం' : 'Garuvupalem'}
                 </span>
               </div>
-              <p className="block sm:hidden text-[10px] text-amber-800 font-medium leading-none truncate mt-0.5">
+              <p className="block sm:hidden text-[11px] text-amber-800 font-semibold leading-tight mt-0.5 whitespace-nowrap">
                 {lang === 'te' ? 'గరువుపాలెం' : 'Garuvupalem'}
               </p>
               <p className="hidden md:block text-xs text-amber-900 font-normal leading-normal mt-0.5 truncate">
@@ -477,25 +486,25 @@ export const LandingPage: React.FC = () => {
           </nav>
 
           {/* Region 3: Far Right - Language Switcher (తెలుగు | English) & Mobile Drawer Toggle */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            <div className="flex items-center bg-stone-100 p-0.5 sm:p-1 rounded-xl border border-stone-200 text-xs sm:text-sm font-medium">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+            <div className="flex items-center bg-stone-100 p-0.5 sm:p-1 rounded-xl border border-stone-200 text-[11px] sm:text-sm font-medium">
               <button
                 onClick={() => handleLangChange('te')}
-                className={`px-1.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-lg transition-all cursor-pointer ${
                   lang === 'te' 
-                    ? 'bg-white text-amber-800 font-medium shadow-xs' 
+                    ? 'bg-white text-amber-800 font-semibold shadow-xs' 
                     : 'text-stone-600 hover:text-stone-900 font-normal'
                 }`}
                 aria-label="Switch to Telugu"
               >
                 తెలుగు
               </button>
-              <span className="text-stone-400 text-xs sm:text-sm px-0.5 select-none">|</span>
+              <span className="text-stone-400 text-[10px] sm:text-sm px-0.5 select-none">|</span>
               <button
                 onClick={() => handleLangChange('en')}
-                className={`px-1.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-lg transition-all cursor-pointer ${
                   lang === 'en' 
-                    ? 'bg-white text-amber-800 font-medium shadow-xs' 
+                    ? 'bg-white text-amber-800 font-semibold shadow-xs' 
                     : 'text-stone-600 hover:text-stone-900 font-normal'
                 }`}
                 aria-label="Switch to English"
@@ -507,7 +516,7 @@ export const LandingPage: React.FC = () => {
             {/* Mobile Drawer Button (visible below lg) */}
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-stone-700 hover:text-amber-700 rounded-lg border border-stone-200 cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
+              className="lg:hidden p-1.5 sm:p-2 text-stone-700 hover:text-amber-700 rounded-lg border border-stone-200 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -681,11 +690,8 @@ export const LandingPage: React.FC = () => {
                         </div>
 
                         <h3 className="text-[22px] sm:text-[24px] font-medium text-slate-900 pt-1 leading-snug">
-                          {lang === 'en'
-                            ? (todayData.day.alankaram_name_english || todayData.day.alankaram_name_telugu)
-                            : (todayData.day.day_number === 0
-                                ? (todayData.day.alankaram_name_telugu.startsWith('శ్రీ') ? todayData.day.alankaram_name_telugu : `శ్రీ ${todayData.day.alankaram_name_telugu}`)
-                                : `శ్రీ ${todayData.day.alankaram_name_telugu} అలంకారం`)}
+                          {getFormattedAlankaramTitle(todayData.day.alankaram_name_telugu, todayData.day.alankaram_name_english, lang)}
+                          {todayData.day.day_number !== 0 && (lang === 'te' ? ' అలంకారం' : '')}
                         </h3>
                         
                         {todayData.day.description_telugu && (
@@ -709,15 +715,14 @@ export const LandingPage: React.FC = () => {
                           <ul className="space-y-3">
                             {todayData.day.activities.map(act => (
                               <li key={act.id} className="p-3 bg-amber-50/40 rounded-xl border border-amber-200/60 space-y-2">
-                                <div className="flex items-start gap-2.5 text-base">
-                                  <span className="font-medium text-amber-900 bg-amber-100/70 border border-amber-200/80 px-2 py-1 rounded-md shrink-0 text-sm">
+                                <div className="flex flex-col sm:flex-row sm:items-center items-start gap-1.5 sm:gap-2.5 text-base">
+                                  <span className="inline-flex items-center gap-1 font-semibold text-amber-900 bg-amber-100/80 border border-amber-200/90 px-2 py-0.5 rounded-md text-xs sm:text-sm shrink-0">
+                                    <Clock className="h-3.5 w-3.5 text-amber-700 shrink-0" />
                                     {(lang === 'en' ? (act.time_str_english || act.time_str) : act.time_str) || t.today.timePending}
                                   </span>
-                                  <div className="pt-0.5">
-                                    <p className="font-medium text-slate-900 leading-relaxed">
-                                      {getLocalizedText(lang, act.title_telugu, act.title_english)}
-                                    </p>
-                                  </div>
+                                  <p className="font-semibold text-slate-900 text-sm sm:text-base leading-snug">
+                                    {getLocalizedText(lang, act.title_telugu, act.title_english)}
+                                  </p>
                                 </div>
 
                                 {/* Special Puja Participation Guidance */}
@@ -910,7 +915,7 @@ export const LandingPage: React.FC = () => {
                       </div>
 
                       <h3 className="text-lg sm:text-[19px] font-medium text-slate-900 pt-1 leading-snug">
-                        శ్రీ {getLocalizedText(lang, day.alankaram_name_telugu, day.alankaram_name_english)}
+                        {getFormattedAlankaramTitle(day.alankaram_name_telugu, day.alankaram_name_english, lang)}
                       </h3>
 
                       {day.description_telugu && (
@@ -923,13 +928,16 @@ export const LandingPage: React.FC = () => {
                       <div className="pt-2.5 space-y-2 border-t border-stone-100">
                         {Array.isArray(day.activities) && day.activities.length > 0 ? (
                           day.activities.slice(0, 3).map((act) => (
-                            <div key={act.id} className="text-sm flex items-start gap-2 text-slate-700">
-                              <span className="font-medium text-amber-800 shrink-0">
-                                {(lang === 'en' ? (act.time_str_english || act.time_str) : act.time_str) || t.today.timePending}:
-                              </span>
-                              <span className="font-normal leading-relaxed">
+                            <div key={act.id} className="text-sm p-2 sm:p-2.5 rounded-xl bg-amber-50/50 border border-amber-200/60 space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-900 border border-amber-200/80">
+                                  <Clock className="h-3 w-3 text-amber-700 shrink-0" />
+                                  {(lang === 'en' ? (act.time_str_english || act.time_str) : act.time_str) || t.today.timePending}
+                                </span>
+                              </div>
+                              <p className="font-medium text-slate-800 text-xs sm:text-sm leading-relaxed">
                                 {getLocalizedText(lang, act.title_telugu, act.title_english)}
-                              </span>
+                              </p>
                             </div>
                           ))
                         ) : (
@@ -1647,7 +1655,7 @@ export const LandingPage: React.FC = () => {
                 {t.modal.dayPrefix} {selectedDayModal.day_number} ({formatFestivalDate(selectedDayModal.date, lang)})
               </span>
               <h3 className="text-xl font-medium text-slate-900 pt-1 leading-snug">
-                శ్రీ {getLocalizedText(lang, selectedDayModal.alankaram_name_telugu, selectedDayModal.alankaram_name_english)} {t.modal.alankaramSuffix}
+                {getFormattedAlankaramTitle(selectedDayModal.alankaram_name_telugu, selectedDayModal.alankaram_name_english, lang)} {t.modal.alankaramSuffix}
               </h3>
               {selectedDayModal.description_telugu && (
                 <p className="text-sm sm:text-base text-amber-900 font-normal leading-relaxed">
@@ -1665,15 +1673,14 @@ export const LandingPage: React.FC = () => {
                 <ul className="space-y-2.5">
                   {selectedDayModal.activities.map(act => (
                     <li key={act.id} className="p-3 bg-amber-50/50 rounded-xl border border-amber-200/70 space-y-2">
-                      <div className="flex items-start gap-2.5 text-sm sm:text-base">
-                        <span className="font-medium text-amber-800 bg-amber-100/70 border border-amber-200 px-2 py-0.5 rounded-md shrink-0 text-xs sm:text-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center items-start gap-1.5 sm:gap-2.5 text-sm sm:text-base">
+                        <span className="inline-flex items-center gap-1 font-semibold text-amber-800 bg-amber-100/80 border border-amber-200 px-2 py-0.5 rounded-md text-xs sm:text-sm shrink-0">
+                          <Clock className="h-3.5 w-3.5 text-amber-700 shrink-0" />
                           {(lang === 'en' ? (act.time_str_english || act.time_str) : act.time_str) || t.modal.timePending}
                         </span>
-                        <div className="pt-0.5">
-                          <p className="font-medium text-slate-900 leading-relaxed">
-                            {getLocalizedText(lang, act.title_telugu, act.title_english)}
-                          </p>
-                        </div>
+                        <p className="font-semibold text-slate-900 text-sm sm:text-base leading-snug">
+                          {getLocalizedText(lang, act.title_telugu, act.title_english)}
+                        </p>
                       </div>
 
                       {/* Special Puja Participation Guidance */}

@@ -592,7 +592,7 @@ export const translations: Record<Language, TranslationDict> = {
       alankaramSuffix: 'Alankaram',
       activitiesHeading: 'Programme Schedule',
       couplesHeading: 'Pooja Performing Couples',
-      timePending: 'Timings will be updated soon.',
+      timePending: 'Time to be announced',
       couplesPending: 'Couple details for this day are being updated.',
       btnClose: 'Close',
       materialsHeading: 'Puja Materials to Bring',
