@@ -128,15 +128,18 @@ export interface TranslationDict {
     clickToKnowMore: string;
     brandTitle: string;
     tagline: string;
-    about: string;
-    founder: string;
+    aboutHeading: string;
+    aboutText: string;
+    servicesHeading: string;
+    services: string[];
+    experienceHeading: string;
     stat1Value: string;
     stat1Label: string;
     stat2Value: string;
     stat2Label: string;
-    servicesHeading: string;
-    services: { title: string; desc: string }[];
-    closingLine: string;
+    closingHeading: string;
+    closingText: string;
+    bottomAttribution: string;
     btnDiscuss: string;
     btnClose: string;
   };
@@ -380,49 +383,28 @@ export const translations: Record<Language, TranslationDict> = {
       creditSuffix: 'ద్వారా రూపొందించబడింది',
       clickToKnowMore: 'మరిన్ని వివరాలు తెలుసుకోండి',
       brandTitle: 'MSPN DEV',
-      tagline: 'మీ వ్యాపారం కోసం వెబ్‌సైట్‌లు & యాప్‌ల నిర్మాణం',
-      about: 'MSPN DEV అనేది వ్యాపారాలు, కమ్యూనిటీలు మరియు స్టార్టప్‌లు తమ ఆలోచనలను ఆన్‌లైన్‌లోకి తీసుకురావడానికి తోడ్పడే వెబ్ & యాప్ డెవలప్‌మెంట్ స్టూడియో. మేము ఆలోచనాత్మకమైన డిజైన్, ఆచరణాత్మక ఫీచర్లు మరియు ప్రతి స్క్రీన్‌కు అనుకూలమైన అనుభవాలతో వ్యాపార వెబ్‌సైట్‌లు, కస్టమ్ అప్లికేషన్‌లు మరియు మేనేజ్‌మెంట్ ప్లాట్‌ఫారమ్‌లను రూపొందిస్తాము.',
-      founder: 'ఎట్టేల మనీష్ చే స్థాపించబడింది',
+      tagline: 'మీ వ్యాపారం కోసం వెబ్‌సైట్‌లు & అప్లికేషన్‌లు',
+      aboutHeading: 'మా గురించి',
+      aboutText: 'MSPN DEV అనేది వ్యాపారాలు, స్టార్టప్‌లు మరియు కమ్యూనిటీల కోసం ప్రొఫెషనల్ వెబ్‌సైట్‌లు మరియు అప్లికేషన్‌లను రూపొందించే వెబ్ డెవలప్‌మెంట్ సంస్థ. స్పష్టమైన డిజైన్, రెస్పాన్సివ్ లేఅవుట్‌లు మరియు ప్రతి వ్యాపారానికి అనుకూలమైన ఫీచర్లతో ఆలోచనలను ఉపయోగకరమైన డిజిటల్ అనుభవాలుగా మారుస్తాము.',
+      servicesHeading: 'మేము అందించే సేవలు',
+      services: [
+        'వ్యాపార వెబ్‌సైట్‌లు & ల్యాండింగ్ పేజీలు (Business Websites & Landing Pages)',
+        'కస్టమ్ వెబ్ అప్లికేషన్‌లు (Custom Web Applications)',
+        'మొబైల్ యాప్ డెవలప్‌మెంట్ (Mobile App Development)',
+        'ఇ-కామర్స్ వెబ్‌సైట్‌లు (E-commerce Websites)',
+        '3D & ఇంటరాక్టివ్ వెబ్‌సైట్‌లు (3D & Interactive Websites)',
+        'అడ్మిన్ డ్యాష్‌బోర్డులు & బిజినెస్ మేనేజ్‌మెంట్ సిస్టమ్స్ (Admin Dashboards & Management Systems)',
+        'API & డేటాబేస్ ఇంటిగ్రేషన్‌లు (API & Database Integrations)',
+        'వెబ్‌సైట్ నిర్వహణ & అప్‌డేట్‌లు (Website Maintenance & Updates)',
+      ],
+      experienceHeading: 'మా అనుభవం',
       stat1Value: '1 సంవత్సరం',
       stat1Label: 'డెవలప్‌మెంట్ అనుభవం',
       stat2Value: '10+',
-      stat2Label: 'వాస్తవ ప్రాజెక్ట్‌లు',
-      servicesHeading: 'మా సేవలు (Our Services)',
-      services: [
-        {
-          title: 'వ్యాపార వెబ్‌సైట్‌లు & ల్యాండింగ్ పేజీలు',
-          desc: 'మీ వ్యాపారం, సేవలు మరియు బ్రాండ్‌ను స్పష్టంగా ప్రతిబింబించే ప్రొఫెషనల్ వెబ్‌సైట్‌లు.'
-        },
-        {
-          title: 'కస్టమ్ వెబ్ అప్లికేషన్‌లు',
-          desc: 'మీ వ్యాపార పనితీరు మరియు అవసరాలకు తగినట్లుగా రూపొందించబడిన ప్రత్యేక అప్లికేషన్‌లు.'
-        },
-        {
-          title: 'మొబైల్ యాప్ డెవలప్‌మెంట్',
-          desc: 'స్పష్టమైన ఇంటర్‌ఫేస్ మరియు ఆచరణాత్మకమైన పనితీరుతో కూడిన మొబైల్ అప్లికేషన్‌లు.'
-        },
-        {
-          title: '3D & ఇంటరాక్టివ్ వెబ్‌సైట్‌లు',
-          desc: '3D విజువల్స్, స్క్రోల్ ఆధారిత కథనం మరియు ఇంటరాక్టివ్ అనుభవాలతో ఆకట్టుకునే వెబ్‌సైట్‌లు.'
-        },
-        {
-          title: 'ఇ-కామర్స్ డెవలప్‌మెంట్',
-          desc: 'ఉత్పత్తుల కేటలాగ్, ఆర్డరింగ్ మరియు ఆన్‌లైన్ పేమెంట్ సౌకర్యాలతో కూడిన డిజిటల్ దుకాణాలు.'
-        },
-        {
-          title: 'డ్యాష్‌బోర్డులు & మేనేజ్‌మెంట్ సిస్టమ్స్',
-          desc: 'కార్యకలాపాలు, రికార్డులు మరియు రిపోర్టింగ్ నిర్వహణ కోసం అడ్మిన్ ప్యానెల్స్ మరియు టూల్స్.'
-        },
-        {
-          title: 'APIలు & డేటాబేస్ ఇంటిగ్రేషన్‌లు',
-          desc: 'మీ అప్లికేషన్ సేవలు మరియు డేటాను అనుసంధానించే బ్యాకెండ్ డెవలప్‌మెంట్ & ఇంటిగ్రేషన్లు.'
-        },
-        {
-          title: 'వెబ్‌సైట్ నిర్వహణ & మెరుగుదలలు',
-          desc: 'అప్‌డేట్‌లు, సమస్యల పరిష్కారం, పనితీరు వేగవంతం చేయడం మరియు నిరంతర నిర్వహణ.'
-        }
-      ],
-      closingLine: 'మీ వ్యాపారం కోసం ఏదైనా ఆలోచన ఉందా? MSPN DEVతో దానిని నిర్మిద్దాం.',
+      stat2Label: 'పూర్తి చేసిన ప్రాజెక్ట్‌లు',
+      closingHeading: 'మీ వ్యాపారాన్ని ఆన్‌లైన్‌లో నిర్మిద్దాం',
+      closingText: 'వ్యాపార వెబ్‌సైట్ నుండి కస్టమ్ అప్లికేషన్ వరకు, మీ లక్ష్యాలకు తగిన డిజిటల్ గుర్తింపును రూపొందించడంలో MSPN DEV మీకు సహాయపడుతుంది.',
+      bottomAttribution: 'Founder: Maneesh',
       btnDiscuss: 'ప్రాజెక్ట్ గురించి చర్చించండి',
       btnClose: 'ముగించు',
     },
@@ -664,49 +646,28 @@ export const translations: Record<Language, TranslationDict> = {
       creditSuffix: '',
       clickToKnowMore: 'Click to know more',
       brandTitle: 'MSPN DEV',
-      tagline: 'Websites & Apps Built for Your Business',
-      about: 'MSPN DEV is a web and app development studio helping businesses, communities and startups bring their ideas online. We create business websites, custom applications and management platforms with thoughtful design, practical features and responsive experiences.',
-      founder: 'Founded by Ettela Maneesh',
+      tagline: 'Websites & Applications for Your Business',
+      aboutHeading: 'About Us',
+      aboutText: 'MSPN DEV is a web development company creating professional websites and applications for businesses, startups and communities. We turn ideas into useful digital experiences with clear design, responsive layouts and features tailored to each business.',
+      servicesHeading: 'What We Do',
+      services: [
+        'Business Websites & Landing Pages',
+        'Custom Web Applications',
+        'Mobile App Development',
+        'E-commerce Websites',
+        '3D & Interactive Websites',
+        'Admin Dashboards & Business Management Systems',
+        'API & Database Integrations',
+        'Website Maintenance & Updates',
+      ],
+      experienceHeading: 'Our Experience',
       stat1Value: '1 Year',
       stat1Label: 'Development Experience',
       stat2Value: '10+',
-      stat2Label: 'Real-World Projects',
-      servicesHeading: 'Our Services',
-      services: [
-        {
-          title: 'Business Websites & Landing Pages',
-          desc: 'Professional websites that present your business, services and brand clearly.'
-        },
-        {
-          title: 'Custom Web Applications',
-          desc: 'Applications built around your business workflows and requirements.'
-        },
-        {
-          title: 'Mobile App Development',
-          desc: 'Mobile applications with clear interfaces and practical functionality.'
-        },
-        {
-          title: '3D & Interactive Websites',
-          desc: 'Engaging websites featuring 3D visuals, scroll-based storytelling and interactive experiences.'
-        },
-        {
-          title: 'E-commerce Development',
-          desc: 'Online stores with product catalogues, ordering and payment integrations.'
-        },
-        {
-          title: 'Dashboards & Management Systems',
-          desc: 'Admin panels and tools for managing operations, records and reporting.'
-        },
-        {
-          title: 'APIs & Database Integrations',
-          desc: 'Backend development and integrations that connect your application’s services and data.'
-        },
-        {
-          title: 'Website Maintenance & Improvements',
-          desc: 'Updates, troubleshooting, performance improvements and ongoing enhancements.'
-        }
-      ],
-      closingLine: 'Have an idea for your business? Let’s build it with MSPN DEV.',
+      stat2Label: 'Projects Delivered',
+      closingHeading: 'Let’s Build Your Business Online',
+      closingText: 'From a business website to a custom application, MSPN DEV helps you create a digital presence that fits your goals.',
+      bottomAttribution: 'Founder: Maneesh',
       btnDiscuss: 'Discuss Your Project',
       btnClose: 'Close',
     },

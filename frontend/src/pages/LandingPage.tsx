@@ -1963,69 +1963,70 @@ export const LandingPage: React.FC = () => {
 
             {/* Modal Body (Scrollable) */}
             <div className="overflow-y-auto p-5 sm:p-7 space-y-6 text-slate-800 text-sm sm:text-base leading-relaxed">
-              {/* About Studio & Founder Attribution */}
-              <div className="bg-orange-50/50 rounded-2xl p-4 sm:p-5 border border-orange-100/90 space-y-2.5">
+              {/* About Us */}
+              <div className="bg-orange-50/50 rounded-2xl p-4 sm:p-5 border border-orange-100/90 space-y-2">
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-orange-950">
+                  {t.developer.aboutHeading}
+                </h4>
                 <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
-                  {t.developer.about}
+                  {t.developer.aboutText}
                 </p>
-                <div className="pt-2 border-t border-orange-200/60 flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600">
-                  <span>{t.developer.founder}</span>
-                </div>
               </div>
 
-              {/* Experience Highlights (2 Compact Cards) */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
-                    {t.developer.stat1Value}
-                  </div>
-                  <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
-                    {t.developer.stat1Label}
-                  </div>
-                </div>
-                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
-                    {t.developer.stat2Value}
-                  </div>
-                  <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
-                    {t.developer.stat2Label}
-                  </div>
-                </div>
-              </div>
-
-              {/* Our Services (2 Columns on Desktop, 1 Column on Mobile) */}
+              {/* What We Do (2 Columns Desktop, 1 Column Mobile) */}
               <div className="space-y-3">
                 <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
                   {t.developer.servicesHeading}
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
                   {t.developer.services.map((service, idx) => (
                     <div 
                       key={idx}
-                      className="bg-stone-50/70 border border-stone-200/80 rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between"
+                      className="bg-stone-50/80 border border-stone-200/90 hover:border-orange-200/90 rounded-xl p-3 sm:p-3.5 flex items-center gap-3 transition-colors"
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-orange-600 bg-orange-100/80 px-2 py-0.5 rounded-md">
-                            {idx + 1}
-                          </span>
-                          <h5 className="font-semibold text-slate-900 text-sm sm:text-base leading-snug">
-                            {service.title}
-                          </h5>
-                        </div>
-                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2 font-normal">
-                          {service.desc}
-                        </p>
-                      </div>
+                      <span className="flex items-center justify-center w-6 h-6 rounded-md bg-orange-100/90 text-orange-700 font-bold text-xs shrink-0">
+                        {idx + 1}
+                      </span>
+                      <span className="text-xs sm:text-sm font-medium text-slate-800 leading-snug">
+                        {service}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Closing Line */}
-              <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-4 sm:p-4.5 border border-orange-200 text-center">
-                <p className="text-sm sm:text-base font-semibold text-slate-800">
-                  {t.developer.closingLine}
+              {/* Our Experience (2 Compact Cards) */}
+              <div className="space-y-3">
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
+                  {t.developer.experienceHeading}
+                </h4>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                      {t.developer.stat1Value}
+                    </div>
+                    <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
+                      {t.developer.stat1Label}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                      {t.developer.stat2Value}
+                    </div>
+                    <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
+                      {t.developer.stat2Label}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Let’s Build Your Business Online */}
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-4 sm:p-5 border border-orange-200 text-center space-y-1.5">
+                <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                  {t.developer.closingHeading}
+                </h4>
+                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">
+                  {t.developer.closingText}
                 </p>
               </div>
 
@@ -2042,6 +2043,13 @@ export const LandingPage: React.FC = () => {
                   </a>
                 </div>
               )}
+
+              {/* Very Bottom Attribution */}
+              <div className="pt-2 border-t border-slate-200/80 text-center">
+                <p className="text-xs text-slate-500 font-medium tracking-wide">
+                  {t.developer.bottomAttribution}
+                </p>
+              </div>
             </div>
 
             {/* Modal Footer */}
