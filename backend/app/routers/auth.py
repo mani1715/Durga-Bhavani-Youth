@@ -17,13 +17,17 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 def login(request: LoginRequest, db: Session = Depends(get_db)):
     identifier = request.email.strip()
     user = db.query(User).filter(
-        or_(User.email == identifier, User.phone == identifier)
+        or_(
+            User.username == identifier,
+            User.email == identifier,
+            User.phone == identifier
+        )
     ).first()
     
     if not user or not verify_password(request.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email/phone or password"
+            detail="Incorrect username, email/phone or password"
         )
         
     if not user.is_active:
@@ -32,11 +36,12 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             detail="User account is deactivated"
         )
         
+    token_ver = getattr(user, "token_version", 1) or 1
     access_token = create_access_token(
-        data={"sub": user.id, "role": user.role, "org": user.organization_id}
+        data={"sub": user.id, "role": user.role, "org": user.organization_id, "ver": token_ver}
     )
     refresh_token = create_refresh_token(
-        data={"sub": user.id}
+        data={"sub": user.id, "ver": token_ver}
     )
     
     # Audit log login event
@@ -53,7 +58,8 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "must_change_password": bool(getattr(user, "must_change_password", False))
     }
 
 @router.post("/register", response_model=Token)
@@ -142,6 +148,8 @@ def change_password(
         raise HTTPException(status_code=400, detail="New password must be at least 6 characters long")
         
     current_user.password_hash = hash_password(request.new_password)
+    current_user.must_change_password = False
+    current_user.token_version = (getattr(current_user, "token_version", 1) or 1) + 1
     db.commit()
     return {"message": "Password changed successfully"}
 

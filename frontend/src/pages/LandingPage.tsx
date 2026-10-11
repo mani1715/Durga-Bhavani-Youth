@@ -199,7 +199,65 @@ export const LandingPage: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedDayModal, setSelectedDayModal] = useState<FestivalDay | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<PublicPhoto | null>(null);
+  const [developerModalOpen, setDeveloperModalOpen] = useState(false);
+  const developerTriggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const developerModalRef = React.useRef<HTMLDivElement | null>(null);
   const [activeGalleryTab, setActiveGalleryTab] = useState<number | 'ALL'>('ALL');
+
+  // Accessibility: Escape key dismiss and focus management for developer modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && developerModalOpen) {
+        setDeveloperModalOpen(false);
+        developerTriggerRef.current?.focus();
+      }
+    };
+    if (developerModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [developerModalOpen]);
+
+  // Accessibility: Focus trap within developer modal
+  useEffect(() => {
+    if (developerModalOpen && developerModalRef.current) {
+      const focusable = developerModalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length > 0) {
+        focusable[0].focus();
+      }
+
+      const handleTrapTab = (e: KeyboardEvent) => {
+        if (e.key !== 'Tab' || !developerModalRef.current) return;
+        const els = developerModalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (els.length === 0) return;
+        const first = els[0];
+        const last = els[els.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleTrapTab);
+      return () => {
+        window.removeEventListener('keydown', handleTrapTab);
+      };
+    }
+  }, [developerModalOpen]);
   
   // Donation Search, Category Filter, Type Filter & Pagination
   const [donationSearch, setDonationSearch] = useState('');
@@ -1617,11 +1675,34 @@ export const LandingPage: React.FC = () => {
 
           </div>
 
-          {/* Discreet Footer Bottom Bar with Committee Login */}
-          <div className="pt-8 border-t border-slate-800 text-center flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-stone-400 font-normal">
-            <p>{t.footer.rights}</p>
+          {/* Discreet Footer Bottom Bar with MSPN DEV Credit & Committee Login */}
+          <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-stone-400 font-normal">
+            <p className="text-center md:text-left">{t.footer.rights}</p>
             
-            <div className="flex items-center gap-4">
+            {/* MSPN DEV Credit Trigger Button */}
+            <div className="text-center">
+              <button
+                ref={developerTriggerRef}
+                type="button"
+                onClick={() => setDeveloperModalOpen(true)}
+                className="group inline-flex flex-col items-center justify-center text-xs sm:text-sm text-stone-300 hover:text-orange-400 transition-colors cursor-pointer py-1 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                aria-haspopup="dialog"
+                aria-expanded={developerModalOpen}
+              >
+                <span className="font-medium tracking-wide">
+                  {t.developer.creditPrefix}
+                  <span className="text-orange-500 group-hover:text-orange-400 font-bold transition-colors">
+                    {t.developer.creditBrand}
+                  </span>
+                  {t.developer.creditSuffix ? ` ${t.developer.creditSuffix}` : ''}
+                </span>
+                <span className="text-[11px] sm:text-xs text-stone-400 group-hover:text-stone-300 underline underline-offset-2 decoration-orange-500/50 group-hover:decoration-orange-400 transition-colors mt-0.5">
+                  {t.developer.clickToKnowMore}
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 sm:gap-4 text-center md:text-right">
               <span className="text-amber-400">{t.footer.blessing}</span>
               <span className="text-slate-600">•</span>
               <button 
@@ -1833,6 +1914,132 @@ export const LandingPage: React.FC = () => {
               {selectedPhoto.alankaram_tag && (
                 <p className="text-sm font-normal text-amber-400">{selectedPhoto.alankaram_tag}</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 3: ABOUT THE DEVELOPER (MSPN DEV)
+          ========================================================================= */}
+      {developerModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-xs"
+          onClick={() => {
+            setDeveloperModalOpen(false);
+            developerTriggerRef.current?.focus();
+          }}
+        >
+          <div 
+            ref={developerModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="developer-modal-heading"
+            className="relative bg-white rounded-3xl max-w-xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-orange-200 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-stone-200 bg-gradient-to-r from-orange-50 via-white to-amber-50 flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-100 border border-orange-200 text-orange-800 text-xs font-semibold tracking-wide uppercase">
+                  <span>🚀</span>
+                  <span>{t.developer.modalHeading}</span>
+                </div>
+                <h3 id="developer-modal-heading" className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+                  {t.developer.developerName}
+                </h3>
+                <p className="text-xs sm:text-sm font-medium text-orange-700">
+                  {t.developer.roleTitle}
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setDeveloperModalOpen(false);
+                  developerTriggerRef.current?.focus();
+                }}
+                className="p-2 rounded-full bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors cursor-pointer shrink-0"
+                aria-label={t.developer.btnClose}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable) */}
+            <div className="overflow-y-auto p-5 sm:p-6 space-y-6 text-slate-800 text-sm sm:text-base leading-relaxed">
+              {/* Introduction */}
+              <div className="bg-orange-50/50 rounded-2xl p-4 border border-orange-100">
+                <p className="font-normal text-slate-700 leading-relaxed">
+                  {t.developer.intro}
+                </p>
+              </div>
+
+              {/* Services */}
+              <div className="space-y-3">
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-orange-950 flex items-center gap-2 border-b border-orange-200/60 pb-1.5">
+                  <span>💼</span>
+                  <span>{t.developer.servicesHeading}</span>
+                </h4>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                  {t.developer.services.map((service, idx) => (
+                    <li key={idx} className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80 flex items-start gap-2 text-slate-700 font-normal">
+                      <span className="text-orange-500 font-bold shrink-0 mt-0.5">✓</span>
+                      <span>{service}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Selected Projects */}
+              <div className="space-y-3">
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-orange-950 flex items-center gap-2 border-b border-orange-200/60 pb-1.5">
+                  <span>🌟</span>
+                  <span>{t.developer.projectsHeading}</span>
+                </h4>
+                <div className="space-y-2.5">
+                  {t.developer.projects.map((proj, idx) => (
+                    <div key={idx} className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/40 border border-amber-200/60 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
+                        <h5 className="font-semibold text-slate-900 text-sm sm:text-base">
+                          {proj.title}
+                        </h5>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-600 pl-4 font-normal">
+                        {proj.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Discuss Your Project (Only if VITE_DEVELOPER_CONTACT_URL is present) */}
+              {import.meta.env.VITE_DEVELOPER_CONTACT_URL && (
+                <div className="pt-2">
+                  <a
+                    href={import.meta.env.VITE_DEVELOPER_CONTACT_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer"
+                  >
+                    <span>{t.developer.btnDiscuss}</span>
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeveloperModalOpen(false);
+                  developerTriggerRef.current?.focus();
+                }}
+                className="w-full sm:w-auto px-5 py-2.5 bg-stone-200 hover:bg-stone-300 text-slate-800 rounded-xl text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+              >
+                {t.developer.btnClose}
+              </button>
             </div>
           </div>
         </div>

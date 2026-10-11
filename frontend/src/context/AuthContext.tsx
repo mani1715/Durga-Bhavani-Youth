@@ -3,9 +3,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string | null;
+  username?: string | null;
+  phone?: string | null;
   role: 'SUPER_ADMIN' | 'ORG_ADMIN' | 'OPERATOR' | 'VIEWER';
   organization_id: string | null;
+  must_change_password?: boolean;
 }
 
 interface AuthContextType {

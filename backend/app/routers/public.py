@@ -347,8 +347,8 @@ def get_all_festival_days(db: Session = Depends(get_db)):
 def get_public_donations(
     search: Optional[str] = None,
     category_id: Optional[str] = None,
-    contribution_type: Optional[str] = Query("MONEY", regex="^(ALL|MONEY|MATERIAL)$"),
-    sort: Optional[str] = Query("highest", regex="^(highest|newest)$"),
+    contribution_type: Optional[str] = Query("MONEY", pattern="^(ALL|MONEY|MATERIAL)$"),
+    sort: Optional[str] = Query("highest", pattern="^(highest|newest)$"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)

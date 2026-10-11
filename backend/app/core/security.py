@@ -71,6 +71,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
+        
+    token_ver = payload.get("ver")
+    user_ver = getattr(user, "token_version", 1) or 1
+    if token_ver is not None and token_ver != user_ver:
+        raise credentials_exception
+    if token_ver is None and user_ver > 1:
+        raise credentials_exception
+        
     return user
 
 class RoleChecker:

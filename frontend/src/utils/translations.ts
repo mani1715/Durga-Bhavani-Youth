@@ -121,6 +121,22 @@ export interface TranslationDict {
     blessing: string;
     committeeLogin: string;
   };
+  developer: {
+    creditPrefix: string;
+    creditBrand: string;
+    creditSuffix: string;
+    clickToKnowMore: string;
+    modalHeading: string;
+    developerName: string;
+    roleTitle: string;
+    intro: string;
+    servicesHeading: string;
+    services: string[];
+    projectsHeading: string;
+    projects: { title: string; desc: string }[];
+    btnDiscuss: string;
+    btnClose: string;
+  };
   modal: {
     dayPrefix: string;
     alankaramSuffix: string;
@@ -355,6 +371,50 @@ export const translations: Record<Language, TranslationDict> = {
       blessing: 'సర్వేజనా సుఖినోభవంతు',
       committeeLogin: 'కమిటీ లాగిన్',
     },
+    developer: {
+      creditPrefix: '',
+      creditBrand: 'MSPN DEV',
+      creditSuffix: 'ద్వారా రూపొందించబడింది',
+      clickToKnowMore: 'మరిన్ని వివరాలు తెలుసుకోండి',
+      modalHeading: 'MSPN DEV',
+      developerName: 'ఎట్టేల మనీష్ (Ettela Maneesh)',
+      roleTitle: 'ఫ్రీలాన్స్ ఫుల్‌స్టాక్ డెవలపర్ (Freelance Full-Stack Developer)',
+      intro: 'నేను మనీష్, వ్యాపారాలు, కమ్యూనిటీలు మరియు స్టార్టప్‌ల కోసం వెబ్‌సైట్‌లు మరియు వెబ్ అప్లికేషన్‌లను రూపొందించే ఫ్రీలాన్స్ ఫుల్‌స్టాక్ డెవలపర్‌ని. MSPN DEV ద్వారా, స్పష్టమైన డిజైన్ మరియు నమ్మకమైన కార్యాచరణతో ఆలోచనలను ఆచరణాత్మక డిజిటల్ ఉత్పత్తులుగా మార్చడంలో నేను సహాయం చేస్తాను.',
+      servicesHeading: 'అందించే సేవలు (Services)',
+      services: [
+        'వ్యాపార వెబ్‌సైట్‌లు మరియు ల్యాండింగ్ పేజీలు (Business websites & landing pages).',
+        'కస్టమ్ వెబ్ అప్లికేషన్‌లు మరియు మేనేజ్‌మెంట్ డ్యాష్‌బోర్డులు (Custom web applications & management dashboards).',
+        'ఇ-కామర్స్ వెబ్‌సైట్‌లు (E-commerce websites).',
+        'డిజిటల్ ఆహ్వానాలు మరియు ఈవెంట్ ప్లాట్‌ఫారమ్‌లు (Digital invitations & event platforms).',
+        'బ్యాకెండ్ APIలు మరియు డేటాబేస్ ఇంటిగ్రేషన్‌లు (Backend APIs & database integrations).',
+        'వెబ్‌సైట్ మెరుగుదలలు మరియు నిర్వహణ (Website improvements & maintenance).'
+      ],
+      projectsHeading: 'ఎంపిక చేసిన ప్రాజెక్ట్‌లు (Selected Projects)',
+      projects: [
+        {
+          title: 'MAJA Invites & Pixora',
+          desc: 'డిజిటల్ ఆహ్వానాలు, ఈవెంట్ ఫోటో గ్యాలరీలు మరియు ఫోటోగ్రాఫర్/కమ్యూనిటీ ఫీచర్లు.'
+        },
+        {
+          title: 'Aishu Home Foods',
+          desc: 'గృహ ఆహార వ్యాపారం కోసం ఇ-కామర్స్ వెబ్‌సైట్.'
+        },
+        {
+          title: 'Interior Designer Platform',
+          desc: 'డిజైనర్ పోర్ట్‌ఫోలియోలు మరియు ప్రాజెక్ట్ షోకేస్‌లు.'
+        },
+        {
+          title: 'Security Agency Platform',
+          desc: 'ఏజెన్సీ అడ్మినిస్ట్రేషన్ మరియు కార్యాచరణ నిర్వహణ వర్క్‌ఫ్లోలు.'
+        },
+        {
+          title: 'Garuvupalem Dasara',
+          desc: 'పండుగ కార్యక్రమాలు, విరాళాలు, పూజా పాల్గొనేవారి వివరాలు మరియు ఫోటో గ్యాలరీలు.'
+        }
+      ],
+      btnDiscuss: 'ప్రాజెక్ట్ గురించి చర్చించండి',
+      btnClose: 'ముగించు (Close)'
+    },
     modal: {
       dayPrefix: 'రోజు',
       alankaramSuffix: 'అలంకారం',
@@ -375,15 +435,15 @@ export const translations: Record<Language, TranslationDict> = {
       title: 'కమిటీ సభ్యుల లాగిన్',
       orgName: 'దుర్గాభవాని యూత్, గరువుపాలెం',
       portalSub: '31వ దేవీ శరన్నవరాత్రి మహోత్సవములు - నిర్వహణ పోర్టల్',
-      labelIdentifier: 'ఈమెయిల్ లేదా ఫోన్ నంబర్',
-      placeholderIdentifier: 'e.g. admin@festival.com లేదా 8897557545',
+      labelIdentifier: 'యూజర్‌నేమ్, ఈమెయిల్ లేదా ఫోన్ నంబర్',
+      placeholderIdentifier: 'యూజర్‌నేమ్, ఈమెయిల్ లేదా ఫోన్ నంబర్ నమోదు చేయండి',
       labelPassword: 'పాస్‌వర్డ్',
       placeholderPassword: '••••••••',
       btnSubmit: 'పోర్టల్‌లోకి ప్రవేశించండి',
       btnLoading: 'పరిశీలిస్తున్నాము...',
       footerNote: 'ఈ లాగిన్ కేవలం దుర్గాభవాని యూత్ కమిటీ సభ్యులకు మాత్రమే.',
       defaultError: 'ప్రవేశించలేకపోయాము. దయచేసి వివరాలు సరిచూసుకోండి.',
-      invalidCreds: 'ఈమెయిల్ / ఫోన్ నంబర్ లేదా పాస్‌వర్డ్ తప్పుగా ఉంది.',
+      invalidCreds: 'యూజర్‌నేమ్, ఈమెయిల్/ఫోన్ లేదా పాస్‌వర్డ్ తప్పుగా ఉంది.',
     },
     layout: {
       orgName: 'దుర్గాభవాని యూత్',
@@ -587,6 +647,50 @@ export const translations: Record<Language, TranslationDict> = {
       blessing: 'Sarve Jana Sukhino Bhavantu',
       committeeLogin: 'Committee Login',
     },
+    developer: {
+      creditPrefix: 'Powered by ',
+      creditBrand: 'MSPN DEV',
+      creditSuffix: '',
+      clickToKnowMore: 'Click to know more',
+      modalHeading: 'MSPN DEV',
+      developerName: 'Ettela Maneesh',
+      roleTitle: 'Freelance Full-Stack Developer',
+      intro: "I’m Maneesh, a freelance full-stack developer building websites and web applications for businesses, communities and startups. Through MSPN DEV, I help turn ideas into practical digital products with clear design and reliable functionality.",
+      servicesHeading: 'Services',
+      services: [
+        'Business websites and landing pages.',
+        'Custom web applications and management dashboards.',
+        'E-commerce websites.',
+        'Digital invitations and event platforms.',
+        'Backend APIs and database integrations.',
+        'Website improvements and maintenance.',
+      ],
+      projectsHeading: 'Selected Projects',
+      projects: [
+        {
+          title: 'MAJA Invites & Pixora',
+          desc: 'Digital invitations, event photo galleries and photographer/community features.',
+        },
+        {
+          title: 'Aishu Home Foods',
+          desc: 'An e-commerce website for a home-food business.',
+        },
+        {
+          title: 'Interior Designer Platform',
+          desc: 'Designer portfolios and project showcases.',
+        },
+        {
+          title: 'Security Agency Platform',
+          desc: 'Agency administration and operational management workflows.',
+        },
+        {
+          title: 'Garuvupalem Dasara',
+          desc: 'Festival programmes, contributions, participant information and photo galleries.',
+        },
+      ],
+      btnDiscuss: 'Discuss Your Project',
+      btnClose: 'Close',
+    },
     modal: {
       dayPrefix: 'Day',
       alankaramSuffix: 'Alankaram',
@@ -607,15 +711,15 @@ export const translations: Record<Language, TranslationDict> = {
       title: 'Committee Member Login',
       orgName: 'Durga Bhavani Youth, Garuvupalem',
       portalSub: '31st Devi Sharannavaratri Mahotsavam - Management Portal',
-      labelIdentifier: 'Email or Phone Number',
-      placeholderIdentifier: 'e.g. admin@festival.com or 8897557545',
+      labelIdentifier: 'Username, Email or Phone',
+      placeholderIdentifier: 'Enter username, email or phone',
       labelPassword: 'Password',
       placeholderPassword: '••••••••',
       btnSubmit: 'Login to Portal',
       btnLoading: 'Signing in...',
       footerNote: 'This login is strictly for Durga Bhavani Youth committee members only.',
       defaultError: 'Unable to sign in. Please verify your details.',
-      invalidCreds: 'Invalid email/phone number or password',
+      invalidCreds: 'Invalid username, email/phone or password',
     },
     layout: {
       orgName: 'Durga Bhavani Youth',

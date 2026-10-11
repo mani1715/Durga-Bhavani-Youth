@@ -8,6 +8,7 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+    must_change_password: Optional[bool] = False
 
 class TokenData(BaseModel):
     user_id: Optional[str] = None
@@ -15,7 +16,7 @@ class TokenData(BaseModel):
     organization_id: Optional[str] = None
 
 class LoginRequest(BaseModel):
-    email: str = Field(..., description="Email address or mobile phone number")
+    email: str = Field(..., description="Username, email address, or mobile phone number")
     password: str
 
 class RegisterRequest(BaseModel):
@@ -60,10 +61,12 @@ class OrganizationResponse(OrganizationBase):
 # User Schemas
 class UserBase(BaseModel):
     name: str
-    email: EmailStr
+    username: Optional[str] = None
+    email: str
     phone: Optional[str] = None
     role: str
     is_active: bool = True
+    must_change_password: Optional[bool] = False
 
 class UserCreate(UserBase):
     password: str
