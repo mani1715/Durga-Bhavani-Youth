@@ -1920,7 +1920,7 @@ export const LandingPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-          MODAL 3: ABOUT THE DEVELOPER (MSPN DEV)
+          MODAL 3: ABOUT MSPN DEV (COMPANY PRESENTATION)
           ========================================================================= */}
       {developerModalOpen && (
         <div 
@@ -1935,21 +1935,17 @@ export const LandingPage: React.FC = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="developer-modal-heading"
-            className="relative bg-white rounded-3xl max-w-xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-orange-200 overflow-hidden"
+            className="relative bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-orange-200 overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal Header */}
+            {/* Modal Header: Prominent Brand & Tagline */}
             <div className="p-5 sm:p-6 border-b border-stone-200 bg-gradient-to-r from-orange-50 via-white to-amber-50 flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-100 border border-orange-200 text-orange-800 text-xs font-semibold tracking-wide uppercase">
-                  <span>🚀</span>
-                  <span>{t.developer.modalHeading}</span>
-                </div>
-                <h3 id="developer-modal-heading" className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
-                  {t.developer.developerName}
+              <div>
+                <h3 id="developer-modal-heading" className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {t.developer.brandTitle}
                 </h3>
-                <p className="text-xs sm:text-sm font-medium text-orange-700">
-                  {t.developer.roleTitle}
+                <p className="text-xs sm:text-sm font-semibold text-orange-600 mt-1">
+                  {t.developer.tagline}
                 </p>
               </div>
               <button 
@@ -1966,56 +1962,76 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Modal Body (Scrollable) */}
-            <div className="overflow-y-auto p-5 sm:p-6 space-y-6 text-slate-800 text-sm sm:text-base leading-relaxed">
-              {/* Introduction */}
-              <div className="bg-orange-50/50 rounded-2xl p-4 border border-orange-100">
-                <p className="font-normal text-slate-700 leading-relaxed">
-                  {t.developer.intro}
+            <div className="overflow-y-auto p-5 sm:p-7 space-y-6 text-slate-800 text-sm sm:text-base leading-relaxed">
+              {/* About Studio & Founder Attribution */}
+              <div className="bg-orange-50/50 rounded-2xl p-4 sm:p-5 border border-orange-100/90 space-y-2.5">
+                <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+                  {t.developer.about}
                 </p>
+                <div className="pt-2 border-t border-orange-200/60 flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600">
+                  <span>{t.developer.founder}</span>
+                </div>
               </div>
 
-              {/* Services */}
+              {/* Experience Highlights (2 Compact Cards) */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 text-center">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                    {t.developer.stat1Value}
+                  </div>
+                  <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
+                    {t.developer.stat1Label}
+                  </div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 text-center">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                    {t.developer.stat2Value}
+                  </div>
+                  <div className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
+                    {t.developer.stat2Label}
+                  </div>
+                </div>
+              </div>
+
+              {/* Our Services (2 Columns on Desktop, 1 Column on Mobile) */}
               <div className="space-y-3">
-                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-orange-950 flex items-center gap-2 border-b border-orange-200/60 pb-1.5">
-                  <span>💼</span>
-                  <span>{t.developer.servicesHeading}</span>
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
+                  {t.developer.servicesHeading}
                 </h4>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
                   {t.developer.services.map((service, idx) => (
-                    <li key={idx} className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80 flex items-start gap-2 text-slate-700 font-normal">
-                      <span className="text-orange-500 font-bold shrink-0 mt-0.5">✓</span>
-                      <span>{service}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Selected Projects */}
-              <div className="space-y-3">
-                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-orange-950 flex items-center gap-2 border-b border-orange-200/60 pb-1.5">
-                  <span>🌟</span>
-                  <span>{t.developer.projectsHeading}</span>
-                </h4>
-                <div className="space-y-2.5">
-                  {t.developer.projects.map((proj, idx) => (
-                    <div key={idx} className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/40 border border-amber-200/60 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
-                        <h5 className="font-semibold text-slate-900 text-sm sm:text-base">
-                          {proj.title}
-                        </h5>
+                    <div 
+                      key={idx}
+                      className="bg-stone-50/70 border border-stone-200/80 rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-orange-600 bg-orange-100/80 px-2 py-0.5 rounded-md">
+                            {idx + 1}
+                          </span>
+                          <h5 className="font-semibold text-slate-900 text-sm sm:text-base leading-snug">
+                            {service.title}
+                          </h5>
+                        </div>
+                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2 font-normal">
+                          {service.desc}
+                        </p>
                       </div>
-                      <p className="text-xs sm:text-sm text-slate-600 pl-4 font-normal">
-                        {proj.desc}
-                      </p>
                     </div>
                   ))}
                 </div>
               </div>
 
+              {/* Closing Line */}
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-4 sm:p-4.5 border border-orange-200 text-center">
+                <p className="text-sm sm:text-base font-semibold text-slate-800">
+                  {t.developer.closingLine}
+                </p>
+              </div>
+
               {/* Discuss Your Project (Only if VITE_DEVELOPER_CONTACT_URL is present) */}
               {import.meta.env.VITE_DEVELOPER_CONTACT_URL && (
-                <div className="pt-2">
+                <div>
                   <a
                     href={import.meta.env.VITE_DEVELOPER_CONTACT_URL}
                     target="_blank"
