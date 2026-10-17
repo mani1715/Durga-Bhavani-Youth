@@ -54,6 +54,21 @@ export interface TranslationDict {
     whatToBringHeading: string;
     participantsHeading: string;
     noMaterialsMsg: string;
+    offeringsSections: {
+      morningPuja: string;
+      morningPrasadam: string;
+      eveningPuja: string;
+      eveningPrasadam: string;
+      luckyDip: string;
+      specialProgramme: string;
+      sponsors: string;
+      item: string;
+      quantity: string;
+      notes: string;
+      emptySection: string;
+      reviewStatusPending: string;
+      reviewStatusConfirmed: string;
+    };
   };
   schedule: {
     badge: string;
@@ -310,6 +325,21 @@ export const translations: Record<Language, TranslationDict> = {
       whatToBringHeading: 'తీసుకురావలసిన పూజా సామగ్రి',
       participantsHeading: 'పూజా భక్తులు / పాల్గొనేవారు',
       noMaterialsMsg: 'పూజా సామగ్రి వివరాలు త్వరలో తెలియజేస్తాము.',
+      offeringsSections: {
+        morningPuja: 'ఉదయం పూజ నిర్వహించేవారు',
+        morningPrasadam: 'ఉదయం ప్రసాద వితరణ దాతలు',
+        eveningPuja: 'సాయంత్రం పూజ నిర్వహించేవారు',
+        eveningPrasadam: 'సాయంత్రం ప్రసాద వితరణ దాతలు',
+        luckyDip: 'లక్కీ డిప్ బహుమతుల దాతలు',
+        specialProgramme: 'ప్రత్యేక కార్యక్రమాలు',
+        sponsors: 'దాతల వివరాలు',
+        item: 'వస్తువు / కార్యక్రమం',
+        quantity: 'పరిమాణం',
+        notes: 'వివరాలు',
+        emptySection: 'ఈ విభాగానికి వివరాలు త్వరలో నమోదు చేయబడును.',
+        reviewStatusPending: 'సమీక్షలో ఉంది',
+        reviewStatusConfirmed: 'ఖరారైనది',
+      },
     },
     schedule: {
       badge: 'సంపూర్ణ ప్రణాళిక',
@@ -573,6 +603,21 @@ export const translations: Record<Language, TranslationDict> = {
       whatToBringHeading: 'What to Bring',
       participantsHeading: 'Pooja Participants',
       noMaterialsMsg: 'Materials requirements will be announced soon.',
+      offeringsSections: {
+        morningPuja: 'Morning Puja Participants',
+        morningPrasadam: 'Morning Prasadam Sponsors',
+        eveningPuja: 'Evening Puja Participants',
+        eveningPrasadam: 'Evening Prasadam Sponsors',
+        luckyDip: 'Lucky-Dip Offerings & Prize Donors',
+        specialProgramme: 'Special Programmes & Cultural Events',
+        sponsors: 'Sponsor Details',
+        item: 'Item / Event',
+        quantity: 'Quantity',
+        notes: 'Notes',
+        emptySection: 'Information for this section will be announced soon.',
+        reviewStatusPending: 'Under Review',
+        reviewStatusConfirmed: 'Confirmed',
+      },
     },
     schedule: {
       badge: 'Full Schedule',

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Calendar, Heart, ImageIcon, Bell, Settings as SettingsIcon,
   Plus, Trash2, Edit2, CheckCircle, Eye, EyeOff, Upload, Phone, Save, AlertCircle,
-  ArrowUp, ArrowDown, RefreshCw, Sparkles
+  ArrowUp, ArrowDown, RefreshCw, Sparkles, Gift
 } from 'lucide-react';
 
 import { useLanguage } from '../context/LanguageContext';
@@ -162,13 +162,42 @@ export const FestivalManagement: React.FC = () => {
     return lang === 'en' ? `Day ${dayNumber}` : `రోజు ${dayNumber}`;
   };
 
-  const [activeTab, setActiveTab] = useState<'DAYS' | 'COUPLES' | 'PHOTOS' | 'ANNOUNCEMENTS' | 'SETTINGS'>('DAYS');
+  const [activeTab, setActiveTab] = useState<'DAYS' | 'OFFERINGS' | 'COUPLES' | 'PHOTOS' | 'ANNOUNCEMENTS' | 'SETTINGS'>('DAYS');
   
   const [days, setDays] = useState<any[]>([]);
   const [selectedDayId, setSelectedDayId] = useState<string>('');
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
   const [poojaCouples, setPoojaCouples] = useState<any[]>([]);
+
+  // Offerings State
+  const [offeringsDayId, setOfferingsDayId] = useState<string>('');
+  const [offeringsList, setOfferingsList] = useState<any[]>([]);
+  const [offeringsTypeFilter, setOfferingsTypeFilter] = useState<string>('ALL');
+  const [offeringModalOpen, setOfferingModalOpen] = useState(false);
+  const [editingOffering, setEditingOffering] = useState<any | null>(null);
+  const [bulkPrasadamModalOpen, setBulkPrasadamModalOpen] = useState(false);
+  const [bulkPrasadamForm, setBulkPrasadamForm] = useState({
+    sponsor_name: 'Suragani Venkatavaraprasad Anjaneyulu garla dampathulu',
+    sponsor_name_telugu: 'సూరగాని వెంకటవరప్రసాద్ ఆంజనేయులు గార్ల దంపతులు',
+    review_status: 'CONFIRMED'
+  });
+  const [offeringForm, setOfferingForm] = useState({
+    offering_type: 'MORNING_PUJA',
+    session: 'MORNING',
+    sponsor_name: '',
+    sponsor_name_telugu: '',
+    item_description: '',
+    item_description_telugu: '',
+    quantity: '',
+    unit: '',
+    unit_telugu: '',
+    cost_amount: '',
+    notes: '',
+    notes_telugu: '',
+    review_status: 'CONFIRMED',
+    is_published: true
+  });
   
   // Settings Form State
   const [settings, setSettings] = useState({
@@ -255,6 +284,7 @@ export const FestivalManagement: React.FC = () => {
         const data = await res.json();
         setDays(data);
         setSelectedDayId(prev => prev || (data.length > 0 ? data[0].id : ''));
+        setOfferingsDayId(prev => prev || (data.length > 0 ? (data.find((d: any) => d.day_number === 1)?.id || data[0].id) : ''));
       }
     } catch (err) {
       console.error(err);
@@ -368,6 +398,175 @@ export const FestivalManagement: React.FC = () => {
       fetchDayMaterials(editDayModal.id);
     }
   }, [editDayModal?.id, fetchDayMaterials]);
+
+  // Fetch Day Offerings
+  const fetchDayOfferings = useCallback(async (dayId: string, typeFilter?: string) => {
+    if (!dayId) return;
+    try {
+      let url = `/api/festival-admin/days/${dayId}/offerings`;
+      if (typeFilter && typeFilter !== 'ALL') {
+        url += `?offering_type=${typeFilter}`;
+      }
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOfferingsList(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (offeringsDayId) {
+      fetchDayOfferings(offeringsDayId, offeringsTypeFilter);
+    }
+  }, [offeringsDayId, offeringsTypeFilter, fetchDayOfferings]);
+
+  // Handle Save Offering (Create or Update)
+  const handleSaveOffering = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offeringsDayId) {
+      alert(lang === 'en' ? 'Please select a festival day.' : 'దయచేసి ఒక ఉత్సవ రోజును ఎంచుకోండి.');
+      return;
+    }
+    const sponsorName = offeringForm.sponsor_name.trim() || offeringForm.sponsor_name_telugu.trim();
+    if (!sponsorName) {
+      alert(lang === 'en' ? 'Sponsor name is required.' : 'దాత పేరు తప్పనిసరి.');
+      return;
+    }
+
+    try {
+      const payload: any = {
+        festival_day_id: offeringsDayId,
+        offering_type: offeringForm.offering_type,
+        session: offeringForm.session || undefined,
+        sponsor_name: offeringForm.sponsor_name.trim() || offeringForm.sponsor_name_telugu.trim(),
+        sponsor_name_telugu: offeringForm.sponsor_name_telugu.trim() || undefined,
+        item_description: offeringForm.item_description.trim() || undefined,
+        item_description_telugu: offeringForm.item_description_telugu.trim() || undefined,
+        quantity: offeringForm.quantity.trim() || undefined,
+        unit: offeringForm.unit.trim() || undefined,
+        unit_telugu: offeringForm.unit_telugu.trim() || undefined,
+        cost_amount: offeringForm.cost_amount ? parseFloat(offeringForm.cost_amount) : undefined,
+        notes: offeringForm.notes.trim() || undefined,
+        notes_telugu: offeringForm.notes_telugu.trim() || undefined,
+        review_status: offeringForm.review_status || 'CONFIRMED',
+        is_published: offeringForm.is_published
+      };
+
+      let res;
+      if (editingOffering) {
+        res = await fetch(`/api/festival-admin/offerings/${editingOffering.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch(`/api/festival-admin/days/${offeringsDayId}/offerings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      if (res.ok) {
+        fetchDayOfferings(offeringsDayId, offeringsTypeFilter);
+        setOfferingModalOpen(false);
+        setEditingOffering(null);
+        setMsg({
+          type: 'success',
+          text: lang === 'en' ? 'Offering details saved successfully!' : 'పూజా/ప్రసాద దాతల వివరాలు విజయవంతంగా భద్రపరచబడ్డాయి!'
+        });
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Error saving offering');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error saving offering');
+    }
+  };
+
+  // Handle Delete Offering
+  const handleDeleteOffering = async (id: string) => {
+    if (!confirm(lang === 'en' ? 'Are you sure you want to delete this offering entry?' : 'ఈ దాత వివరాలను తొలగించాలనుకుంటున్నారా?')) return;
+    try {
+      const res = await fetch(`/api/festival-admin/offerings/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchDayOfferings(offeringsDayId, offeringsTypeFilter);
+        setMsg({
+          type: 'success',
+          text: lang === 'en' ? 'Offering deleted successfully.' : 'దాత వివరాలు విజయవంతంగా తొలగించబడ్డాయి.'
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Toggle Offering Publish
+  const handleToggleOfferingPublish = async (id: string, currentStatus: boolean) => {
+    try {
+      const res = await fetch(`/api/festival-admin/offerings/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_published: !currentStatus })
+      });
+      if (res.ok) {
+        fetchDayOfferings(offeringsDayId, offeringsTypeFilter);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Bulk Assign Morning Prasadam to Days 1 to 10
+  const handleBulkAssignMorningPrasadam = async () => {
+    try {
+      const res = await fetch('/api/festival-admin/offerings/bulk-morning-prasadam', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sponsor_name: bulkPrasadamForm.sponsor_name.trim(),
+          sponsor_name_telugu: bulkPrasadamForm.sponsor_name_telugu.trim(),
+          review_status: bulkPrasadamForm.review_status
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBulkPrasadamModalOpen(false);
+        fetchDayOfferings(offeringsDayId, offeringsTypeFilter);
+        setMsg({
+          type: 'success',
+          text: lang === 'en' ? data.message : '10 రోజుల ఉదయం ప్రసాద దాతల వివరాలు విజయవంతంగా నవీకరించబడ్డాయి!'
+        });
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Error applying bulk update');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error applying bulk update');
+    }
+  };
 
   // Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -1125,6 +1324,14 @@ export const FestivalManagement: React.FC = () => {
           <Calendar className="h-4 w-4" /> {lang === 'en' ? '12-Day Schedule & Alankarams' : '12 రోజుల కార్యక్రమాలు & అలంకారాలు'}
         </button>
         <button
+          onClick={() => setActiveTab('OFFERINGS')}
+          className={`px-4 py-2.5 rounded-2xl text-sm font-medium transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'OFFERINGS' ? 'bg-orange-600 text-white shadow-md' : 'bg-white text-slate-700 hover:bg-orange-50 border border-orange-200'
+          }`}
+        >
+          <Gift className="h-4 w-4" /> {lang === 'en' ? 'Offerings & Sponsors (Register)' : 'పూజా & ప్రసాద దాతలు (రిజిస్టర్)'}
+        </button>
+        <button
           onClick={() => setActiveTab('COUPLES')}
           className={`px-4 py-2.5 rounded-2xl text-sm font-medium transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'COUPLES' ? 'bg-orange-600 text-white shadow-md' : 'bg-white text-slate-700 hover:bg-orange-50 border border-orange-200'
@@ -1207,6 +1414,315 @@ export const FestivalManagement: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* TAB 1.5: DAY OFFERINGS & SPONSORS (REGISTER RECORDS) */}
+      {activeTab === 'OFFERINGS' && (
+        <div className="space-y-6">
+          {/* Top Controls: Day Selector, Section Filter, Bulk Prasadam, Add Offering */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-orange-200 shadow-xs">
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+              {/* Day Selector */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 shrink-0">
+                  {lang === 'en' ? 'Festival Day:' : 'ఉత్సవ రోజు:'}
+                </label>
+                <select
+                  value={offeringsDayId}
+                  onChange={(e) => setOfferingsDayId(e.target.value)}
+                  className="bg-orange-50/80 border border-orange-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-orange-500"
+                >
+                  {days.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {getDayBadgeLabel(d.day_number)} ({d.date}) - {lang === 'en' ? (d.alankaram_name_english || d.alankaram_name_telugu) : d.alankaram_name_telugu}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Section Filter */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 shrink-0">
+                  {lang === 'en' ? 'Section:' : 'విభాగం:'}
+                </label>
+                <select
+                  value={offeringsTypeFilter}
+                  onChange={(e) => setOfferingsTypeFilter(e.target.value)}
+                  className="bg-orange-50/80 border border-orange-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-orange-500"
+                >
+                  <option value="ALL">{lang === 'en' ? 'All Sections' : 'అన్ని విభాగాలు'}</option>
+                  <option value="MORNING_PUJA">{lang === 'en' ? 'Morning Puja Participants' : 'ఉదయం పూజ నిర్వహించేవారు'}</option>
+                  <option value="MORNING_PRASADAM">{lang === 'en' ? 'Morning Prasadam Sponsors' : 'ఉదయం ప్రసాద వితరణ దాతలు'}</option>
+                  <option value="EVENING_PUJA">{lang === 'en' ? 'Evening Puja Participants' : 'సాయంత్రం పూజ నిర్వహించేవారు'}</option>
+                  <option value="EVENING_PRASADAM">{lang === 'en' ? 'Evening Prasadam Sponsors' : 'సాయంత్రం ప్రసాద వితరణ దాతలు'}</option>
+                  <option value="LUCKY_DIP">{lang === 'en' ? 'Lucky-Dip Offerings' : 'లక్కీ డిప్ బహుమతుల దాతలు'}</option>
+                  <option value="SPECIAL_PROGRAMME">{lang === 'en' ? 'Special Programmes' : 'ప్రత్యేక కార్యక్రమాలు'}</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+              <button
+                onClick={() => setBulkPrasadamModalOpen(true)}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+                title="Assign confirmed morning prasadam to all 10 alankaram days (Days 1–10)"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>{lang === 'en' ? '⚡ Bulk Morning Prasadam (Days 1–10)' : '⚡ బల్క్ ఉదయం ప్రసాద నమోదు (Days 1–10)'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setEditingOffering(null);
+                  setOfferingForm({
+                    offering_type: offeringsTypeFilter !== 'ALL' ? offeringsTypeFilter : 'MORNING_PUJA',
+                    session: 'MORNING',
+                    sponsor_name: '',
+                    sponsor_name_telugu: '',
+                    item_description: '',
+                    item_description_telugu: '',
+                    quantity: '',
+                    unit: '',
+                    unit_telugu: '',
+                    cost_amount: '',
+                    notes: '',
+                    notes_telugu: '',
+                    review_status: 'CONFIRMED',
+                    is_published: true
+                  });
+                  setOfferingModalOpen(true);
+                }}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>{lang === 'en' ? 'Add Offering / Sponsor' : 'దాతను చేర్చండి (+)'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Current Day Info & Review Notice Banner */}
+          {(() => {
+            const currentDayObj = days.find(d => d.id === offeringsDayId);
+            const needsReviewCount = offeringsList.filter(o => o.review_status === 'NEEDS_REVIEW').length;
+
+            return (
+              <div className="bg-gradient-to-r from-orange-50 via-amber-50 to-white p-4 sm:p-5 rounded-3xl border border-orange-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold px-2.5 py-0.5 bg-orange-600 text-white rounded-full">
+                      {currentDayObj ? getDayBadgeLabel(currentDayObj.day_number) : ''}
+                    </span>
+                    <span className="text-sm font-bold text-slate-900">
+                      {currentDayObj ? (lang === 'en' ? (currentDayObj.alankaram_name_english || currentDayObj.alankaram_name_telugu) : currentDayObj.alankaram_name_telugu) : ''}
+                    </span>
+                    <span className="text-xs text-slate-500 font-normal">
+                      ({currentDayObj?.date})
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    {lang === 'en' ? 'Total Offerings / Participants recorded:' : 'ఈ రోజు నమోదైన పూజలు, ప్రసాదములు & బహుమతుల సంఖ్య:'} <strong className="text-slate-900">{offeringsList.length}</strong>
+                  </p>
+                </div>
+
+                {needsReviewCount > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-100/90 text-amber-900 border border-amber-300 rounded-xl text-xs font-medium">
+                    <AlertCircle className="h-4 w-4 text-amber-700 shrink-0" />
+                    <span>
+                      {lang === 'en' ? `${needsReviewCount} entry flagged for committee spelling review` : `${needsReviewCount} నమోదు కమిటీ పరిశీలన/అక్షరక్రమ సమీక్షలో ఉంది`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Offerings Grid / Cards */}
+          {offeringsList.length === 0 ? (
+            <div className="bg-white p-10 rounded-3xl border border-orange-200 text-center space-y-3">
+              <Gift className="h-10 w-10 text-orange-300 mx-auto" />
+              <p className="text-base font-medium text-slate-800">
+                {lang === 'en' ? 'No offerings recorded for this day / filter.' : 'ఈ రోజుకు ఎటువంటి దాతల వివరాలు నమోదు చేయబడలేదు.'}
+              </p>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                {lang === 'en' ? 'Use the "+ Add Offering / Sponsor" button above to record morning/evening puja, prasadam, lucky-dip prizes or special programmes.' : 'పైనున్న "దాతను చేర్చండి (+)" బటన్ ద్వారా ఉదయం/సాయంత్రం పూజలు, ప్రసాదములు, లక్కీ డిప్ బహుమతులు లేదా ప్రత్యేక కార్యక్రమాలను నమోదు చేయవచ్చు.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {offeringsList.map((item) => {
+                const getSectionBadge = (type: string) => {
+                  switch (type) {
+                    case 'MORNING_PUJA':
+                      return { label: lang === 'en' ? 'Morning Puja' : 'ఉదయం పూజ', color: 'bg-amber-100 text-amber-900 border-amber-300' };
+                    case 'MORNING_PRASADAM':
+                      return { label: lang === 'en' ? 'Morning Prasadam' : 'ఉదయం ప్రసాదం', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' };
+                    case 'EVENING_PUJA':
+                      return { label: lang === 'en' ? 'Evening Puja' : 'సాయంత్రం పూజ', color: 'bg-rose-100 text-rose-900 border-rose-300' };
+                    case 'EVENING_PRASADAM':
+                      return { label: lang === 'en' ? 'Evening Prasadam' : 'సాయంత్రం ప్రసాదం', color: 'bg-orange-100 text-orange-900 border-orange-300' };
+                    case 'LUCKY_DIP':
+                      return { label: lang === 'en' ? 'Lucky Dip' : 'లక్కీ డిప్', color: 'bg-purple-100 text-purple-900 border-purple-300' };
+                    case 'SPECIAL_PROGRAMME':
+                      return { label: lang === 'en' ? 'Special Programme' : 'ప్రత్యేక కార్యక్రమం', color: 'bg-indigo-100 text-indigo-900 border-indigo-300' };
+                    default:
+                      return { label: type, color: 'bg-stone-100 text-stone-800 border-stone-300' };
+                  }
+                };
+
+                const badge = getSectionBadge(item.offering_type);
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`bg-white rounded-3xl border p-5 space-y-3.5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between ${
+                      item.is_published ? 'border-orange-200' : 'border-stone-300 bg-stone-50/70 opacity-80'
+                    }`}
+                  >
+                    <div className="space-y-2.5">
+                      {/* Section Badge & Review Status */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badge.color}`}>
+                          {badge.label}
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                          {item.review_status === 'NEEDS_REVIEW' ? (
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3 text-amber-700" />
+                              {lang === 'en' ? 'Review Needed' : 'పరిశీలనలో ఉంది'}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3 text-emerald-600" />
+                              {lang === 'en' ? 'Confirmed' : 'ఖరారైనది'}
+                            </span>
+                          )}
+
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                            item.is_published ? 'bg-emerald-100 text-emerald-900' : 'bg-stone-200 text-stone-700'
+                          }`}>
+                            {item.is_published ? (lang === 'en' ? 'Public' : 'ప్రచురితం') : (lang === 'en' ? 'Draft' : 'డ్రాఫ్ట్')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Sponsor Names */}
+                      <div className="space-y-0.5 pt-1 min-w-0">
+                        <p className="text-base font-bold text-slate-900 leading-snug break-words">
+                          🌺 {item.sponsor_name_telugu || item.sponsor_name}
+                        </p>
+                        {item.sponsor_name && item.sponsor_name_telugu && item.sponsor_name !== item.sponsor_name_telugu && (
+                          <p className="text-xs text-slate-500 font-normal break-words">
+                            {item.sponsor_name}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Item Description, Quantity, Unit */}
+                      {(item.item_description_telugu || item.item_description || item.quantity) && (
+                        <div className="p-2.5 rounded-xl bg-orange-50/50 border border-orange-100 space-y-1 text-xs">
+                          {(item.item_description_telugu || item.item_description) && (
+                            <p className="font-semibold text-slate-800">
+                              {item.item_description_telugu || item.item_description}
+                            </p>
+                          )}
+                          {item.quantity && (
+                            <p className="text-orange-950 font-bold">
+                              {lang === 'en' ? 'Quantity: ' : 'పరిమాణం: '}
+                              <span className="bg-orange-100 px-1.5 py-0.5 rounded text-orange-900">
+                                {item.quantity} {item.unit_telugu || item.unit || ''}
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Informational Cost Note (if any) */}
+                      {item.cost_amount && (
+                        <div className="p-2 rounded-xl bg-blue-50/70 border border-blue-200 text-blue-900 text-xs">
+                          <span className="font-semibold">{lang === 'en' ? 'Noted Programme Cost: ' : 'కార్యక్రమ వ్యయ వివరాలు: '}</span>
+                          <span>₹ {Number(item.cost_amount).toLocaleString('en-IN')}</span>
+                          <span className="block text-[10px] text-blue-700 italic mt-0.5">
+                            {lang === 'en' ? '(Informational only - not added to financial ledger)' : '(కేవలం సమాచారం కొరకు మాత్రమే - నగదు ఖాతాలో జమ కాదు)'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Notes / Register Reference */}
+                      {(item.notes_telugu || item.notes || item.source_reference) && (
+                        <div className="text-[11px] text-slate-500 space-y-0.5 pt-0.5">
+                          {(item.notes_telugu || item.notes) && (
+                            <p className="italic">
+                              {item.notes_telugu || item.notes}
+                            </p>
+                          )}
+                          {item.source_reference && (
+                            <p className="text-[10px] text-slate-400 font-mono">
+                              Ref: {item.source_reference}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Actions: Toggle Publish, Edit, Delete */}
+                    <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => handleToggleOfferingPublish(item.id, item.is_published)}
+                        className={`p-2 rounded-xl border text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors ${
+                          item.is_published
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-stone-100 text-stone-700 border-stone-300 hover:bg-stone-200'
+                        }`}
+                        title={item.is_published ? (lang === 'en' ? 'Click to Unpublish' : 'ప్రచురణ నిలిపివేయి') : (lang === 'en' ? 'Click to Publish' : 'వెబ్‌సైట్‌లో ప్రచురించు')}
+                      >
+                        {item.is_published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                        <span>{item.is_published ? (lang === 'en' ? 'Published' : 'ప్రచురితం') : (lang === 'en' ? 'Draft' : 'నిలిపివేయబడింది')}</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setEditingOffering(item);
+                            setOfferingForm({
+                              offering_type: item.offering_type,
+                              session: item.session || 'MORNING',
+                              sponsor_name: item.sponsor_name || '',
+                              sponsor_name_telugu: item.sponsor_name_telugu || '',
+                              item_description: item.item_description || '',
+                              item_description_telugu: item.item_description_telugu || '',
+                              quantity: item.quantity || '',
+                              unit: item.unit || '',
+                              unit_telugu: item.unit_telugu || '',
+                              cost_amount: item.cost_amount ? String(item.cost_amount) : '',
+                              notes: item.notes || '',
+                              notes_telugu: item.notes_telugu || '',
+                              review_status: item.review_status || 'CONFIRMED',
+                              is_published: item.is_published !== false
+                            });
+                            setOfferingModalOpen(true);
+                          }}
+                          className="p-2 bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 rounded-xl text-xs font-medium flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                          <span>{lang === 'en' ? 'Edit' : 'సవరించు'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteOffering(item.id)}
+                          className="p-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-medium flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -2760,6 +3276,307 @@ export const FestivalManagement: React.FC = () => {
                 className="px-4 py-2 bg-orange-600 text-white rounded-xl text-sm font-medium cursor-pointer"
               >
                 {lang === 'en' ? 'Publish Announcement' : 'ప్రచురించు'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: BULK MORNING PRASADAM ASSIGNMENT */}
+      {bulkPrasadamModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleBulkAssignMorningPrasadam();
+            }}
+            className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-orange-200"
+          >
+            <div className="flex items-center gap-2 border-b border-orange-100 pb-3">
+              <Sparkles className="h-5 w-5 text-emerald-600 shrink-0" />
+              <h3 className="text-lg font-bold text-slate-900 leading-snug">
+                {lang === 'en' ? 'Bulk Assign Morning Prasadam (Days 1–10)' : 'ఉదయం ప్రసాద దాతల బల్క్ నమోదు (11–20 అక్టోబర్)'}
+              </h3>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-950 space-y-1">
+              <p className="font-semibold">
+                {lang === 'en' ? 'Latest Confirmed Committee Instruction:' : 'కమిటీ తాజా ఖరారైన సూచన:'}
+              </p>
+              <p>
+                {lang === 'en'
+                  ? 'Sets the morning prasadam acknowledgement across all 10 alankaram days (11–20 Oct 2026). Strictly preserves 10 Oct arrival and 21 Oct festival conclusion.'
+                  : '10 అలంకార దినాలకు (11 నుండి 20 అక్టోబర్ 2026 వరకు) ఉదయం ప్రసాద దాతగా ఏకరీతిగా నమోదు చేయబడును. 10 అక్టోబర్ ఆగమనం మరియు 21 అక్టోబర్ ముగింపు వివరాలు చెక్కుచెదరకుండా భద్రపరచబడతాయి.'}
+              </p>
+            </div>
+
+            <div className="space-y-3.5 text-sm">
+              <BilingualField
+                label={lang === 'en' ? 'Sponsor Name' : 'దాత పేరు'}
+                englishValue={bulkPrasadamForm.sponsor_name}
+                teluguValue={bulkPrasadamForm.sponsor_name_telugu}
+                onEnglishChange={(val) => setBulkPrasadamForm(prev => ({ ...prev, sponsor_name: val }))}
+                onTeluguChange={(val) => setBulkPrasadamForm(prev => ({ ...prev, sponsor_name_telugu: val }))}
+                englishPlaceholder="Suragani Venkatavaraprasad Anjaneyulu garla dampathulu"
+                teluguPlaceholder="సూరగాని వెంకటవరప్రసాద్ ఆంజనేయులు గార్ల దంపతులు"
+                context="name"
+                token={token}
+                required
+                lang={lang}
+              />
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  {lang === 'en' ? 'Review / Verification Status' : 'సమీక్ష / ధృవీకరణ స్థితి'}
+                </label>
+                <select
+                  value={bulkPrasadamForm.review_status}
+                  onChange={(e) => setBulkPrasadamForm(prev => ({ ...prev, review_status: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-orange-500"
+                >
+                  <option value="CONFIRMED">{lang === 'en' ? 'Confirmed (Ready for Homepage)' : 'ఖరారైనది (Confirmed)'}</option>
+                  <option value="NEEDS_REVIEW">{lang === 'en' ? 'Needs Spelling Review (Flagged for committee)' : 'అక్షరక్రమ సమీక్ష అవసరం (Needs Review)'}</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-orange-100">
+              <button
+                type="button"
+                onClick={() => setBulkPrasadamModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium cursor-pointer"
+              >
+                {lang === 'en' ? 'Cancel' : 'రద్దు'}
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>{lang === 'en' ? 'Apply to All 10 Days' : '10 రోజులకు నమోదు చేయు'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: ADD / EDIT OFFERING */}
+      {offeringModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+          <form
+            onSubmit={handleSaveOffering}
+            className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-orange-200 my-8 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-orange-100 pb-3">
+              <h3 className="text-lg font-bold text-slate-900">
+                {editingOffering
+                  ? (lang === 'en' ? 'Edit Offering / Sponsor' : 'దాత వివరాలు సవరించు')
+                  : (lang === 'en' ? 'Add Offering / Sponsor' : 'కొత్త దాత / బహుమతి నమోదు')}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setOfferingModalOpen(false);
+                  setEditingOffering(null);
+                }}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              {/* Day & Section Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {lang === 'en' ? 'Festival Day *' : 'ఉత్సవ రోజు *'}
+                  </label>
+                  <select
+                    value={offeringsDayId}
+                    onChange={(e) => setOfferingsDayId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-orange-500"
+                  >
+                    {days.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {getDayBadgeLabel(d.day_number)} ({d.date})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {lang === 'en' ? 'Section / Category *' : 'విభాగం *'}
+                  </label>
+                  <select
+                    value={offeringForm.offering_type}
+                    onChange={(e) => setOfferingForm(prev => ({ ...prev, offering_type: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="MORNING_PUJA">{lang === 'en' ? 'Morning Puja Participants' : 'ఉదయం పూజ నిర్వహించేవారు'}</option>
+                    <option value="MORNING_PRASADAM">{lang === 'en' ? 'Morning Prasadam Sponsors' : 'ఉదయం ప్రసాద వితరణ దాతలు'}</option>
+                    <option value="EVENING_PUJA">{lang === 'en' ? 'Evening Puja Participants' : 'సాయంత్రం పూజ నిర్వహించేవారు'}</option>
+                    <option value="EVENING_PRASADAM">{lang === 'en' ? 'Evening Prasadam Sponsors' : 'సాయంత్రం ప్రసాద వితరణ దాతలు'}</option>
+                    <option value="LUCKY_DIP">{lang === 'en' ? 'Lucky-Dip Offerings' : 'లక్కీ డిప్ బహుమతుల దాతలు'}</option>
+                    <option value="SPECIAL_PROGRAMME">{lang === 'en' ? 'Special Programmes' : 'ప్రత్యేక కార్యక్రమాలు'}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Sponsor Name (Bilingual) */}
+              <BilingualField
+                label={lang === 'en' ? 'Sponsor / Participant Name' : 'దాత / నిర్వహించేవారి పేరు'}
+                englishValue={offeringForm.sponsor_name}
+                teluguValue={offeringForm.sponsor_name_telugu}
+                onEnglishChange={(val) => setOfferingForm(prev => ({ ...prev, sponsor_name: val }))}
+                onTeluguChange={(val) => setOfferingForm(prev => ({ ...prev, sponsor_name_telugu: val }))}
+                englishPlaceholder="e.g. Suragani Lakshmi Tirupatamma dampathulu"
+                teluguPlaceholder="ఉదా: సూరగాని లక్ష్మీ తిరుపతమ్మ దంపతులు"
+                context="name"
+                token={token}
+                required
+                lang={lang}
+              />
+
+              {/* Item Description (Bilingual) */}
+              <BilingualField
+                label={lang === 'en' ? 'Item / Programme Description (Optional)' : 'వస్తువు / కార్యక్రమం వివరాలు (ఐచ్ఛికం)'}
+                englishValue={offeringForm.item_description}
+                teluguValue={offeringForm.item_description_telugu}
+                onEnglishChange={(val) => setOfferingForm(prev => ({ ...prev, item_description: val }))}
+                onTeluguChange={(val) => setOfferingForm(prev => ({ ...prev, item_description_telugu: val }))}
+                englishPlaceholder="e.g. Sarees, Steel Plates, Garelu, Kuchipudi Dance"
+                teluguPlaceholder="ఉదా: చీరలు, స్టీల్ ప్లేట్లు, గారెలు, కూచిపూడి నృత్యం"
+                context="material"
+                token={token}
+                lang={lang}
+              />
+
+              {/* Quantity, Unit, Cost Amount Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {lang === 'en' ? 'Quantity' : 'పరిమాణం (సంఖ్య)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={offeringForm.quantity}
+                    onChange={(e) => setOfferingForm(prev => ({ ...prev, quantity: e.target.value }))}
+                    placeholder="e.g. 11, 21, 5"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {lang === 'en' ? 'Unit (English)' : 'ప్రమాణం (English)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={offeringForm.unit}
+                    onChange={(e) => setOfferingForm(prev => ({ ...prev, unit: e.target.value }))}
+                    placeholder="sarees, plates"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {lang === 'en' ? 'Unit (Telugu)' : 'ప్రమాణం (తెలుగు)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={offeringForm.unit_telugu}
+                    onChange={(e) => setOfferingForm(prev => ({ ...prev, unit_telugu: e.target.value }))}
+                    placeholder="చీరలు, ప్లేట్లు, బిందెలు"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              {/* Cost Amount (Informational Only) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  {lang === 'en' ? 'Stated Programme Cost (₹) - Informational Note Only' : 'కార్యక్రమ వ్యయ సమాచారం (₹) - నగదు ఖాతాలో జమ కాదు'}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={offeringForm.cost_amount}
+                  onChange={(e) => setOfferingForm(prev => ({ ...prev, cost_amount: e.target.value }))}
+                  placeholder="e.g. 25000.00"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
+                />
+                <span className="text-[11px] text-slate-500 italic">
+                  {lang === 'en'
+                    ? 'Note: Stated cost does not count as cash received and will NOT alter the financial ledger.'
+                    : 'గమనిక: పేర్కొనబడిన కార్యక్రమ ఖర్చు నగదు విరాళంగా జమ చేయబడదు మరియు నగదు లెడ్జర్‌ను మార్చదు.'}
+                </span>
+              </div>
+
+              {/* Notes (Bilingual) */}
+              <BilingualField
+                label={lang === 'en' ? 'Notes / Register Observations' : 'గమనికలు / రిజిస్టర్ సూచనలు'}
+                englishValue={offeringForm.notes}
+                teluguValue={offeringForm.notes_telugu}
+                onEnglishChange={(val) => setOfferingForm(prev => ({ ...prev, notes: val }))}
+                onTeluguChange={(val) => setOfferingForm(prev => ({ ...prev, notes_telugu: val }))}
+                englishPlaceholder="Additional context, group details, memoriam notes..."
+                teluguPlaceholder="అదనపు సమాచారం, సమూహ వివరాలు, జ్ఞాపకార్థ వివరాలు..."
+                context="general"
+                isTextArea={true}
+                token={token}
+                lang={lang}
+              />
+
+              {/* Review Status & Publish Toggle */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {lang === 'en' ? 'Review Status' : 'ధృవీకరణ స్థితి'}
+                  </label>
+                  <select
+                    value={offeringForm.review_status}
+                    onChange={(e) => setOfferingForm(prev => ({ ...prev, review_status: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="CONFIRMED">{lang === 'en' ? 'Confirmed (Ready for Public)' : 'ఖరారైనది (Confirmed)'}</option>
+                    <option value="NEEDS_REVIEW">{lang === 'en' ? 'Needs Spelling Review (Draft Flag)' : 'సమీక్ష అవసరం (Needs Review)'}</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 pt-6">
+                  <input
+                    type="checkbox"
+                    id="offering_published"
+                    checked={offeringForm.is_published}
+                    onChange={(e) => setOfferingForm(prev => ({ ...prev, is_published: e.target.checked }))}
+                    className="h-4 w-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer"
+                  />
+                  <label htmlFor="offering_published" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                    {lang === 'en' ? 'Publish publicly on website' : 'వెబ్‌సైట్‌లో బహిరంగంగా ప్రచురించు'}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-orange-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setOfferingModalOpen(false);
+                  setEditingOffering(null);
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium cursor-pointer"
+              >
+                {lang === 'en' ? 'Cancel' : 'రద్దు'}
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-medium shadow-xs cursor-pointer"
+              >
+                {editingOffering ? (lang === 'en' ? 'Update Offering' : 'నవీకరించు') : (lang === 'en' ? 'Save Offering' : 'భద్రపరచు')}
               </button>
             </div>
           </form>

@@ -8,11 +8,12 @@ from app.core.database import get_db
 from app.core.security import get_current_user, RoleChecker
 from app.models.db_models import (
     User, Organization, Event, FestivalDay, ProgrammeActivity, PoojaCouple, 
-    DayPhoto, Announcement, Sponsor, Receipt, DayPujaMaterial
+    DayPhoto, Announcement, Sponsor, Receipt, DayPujaMaterial, DayOffering, AuditLog
 )
 from app.services.storage import get_storage_service
 from app.services.audit import write_audit_log
 from app.services.transliteration import suggest_telugu_text
+from app.services.cache import public_cache
 
 router = APIRouter(prefix="/festival-admin", tags=["Festival Admin Management"])
 
@@ -1052,3 +1053,298 @@ def delete_sponsor(
     db.delete(sponsor)
     db.commit()
     return {"message": "Sponsor deleted"}
+
+# -------------------------------------------------------------
+# 8. DAY OFFERINGS & SPONSORS MANAGEMENT (పూజా నిర్వహించేవారు & ప్రసాద దాతలు)
+# -------------------------------------------------------------
+
+@router.get("/days/{day_id}/offerings")
+def get_day_offerings(
+    day_id: str,
+    offering_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    org_id = current_user.organization_id
+    query = db.query(DayOffering).filter(
+        DayOffering.festival_day_id == day_id,
+        DayOffering.organization_id == org_id
+    )
+    if offering_type:
+        query = query.filter(DayOffering.offering_type == offering_type)
+    
+    offerings = query.order_by(DayOffering.display_order.asc(), DayOffering.created_at.asc()).all()
+    return [
+        {
+            "id": o.id,
+            "organization_id": o.organization_id,
+            "festival_day_id": o.festival_day_id,
+            "offering_type": o.offering_type,
+            "session": o.session,
+            "sponsor_name": o.sponsor_name,
+            "sponsor_name_telugu": o.sponsor_name_telugu,
+            "item_description": o.item_description,
+            "item_description_telugu": o.item_description_telugu,
+            "quantity": o.quantity,
+            "unit": o.unit,
+            "unit_telugu": o.unit_telugu,
+            "cost_amount": float(o.cost_amount) if o.cost_amount is not None else None,
+            "source_reference": o.source_reference,
+            "notes": o.notes,
+            "notes_telugu": o.notes_telugu,
+            "review_status": o.review_status,
+            "display_order": o.display_order,
+            "is_published": o.is_published,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+            "updated_at": o.updated_at.isoformat() if o.updated_at else None
+        } for o in offerings
+    ]
+
+@router.post("/days/{day_id}/offerings")
+def create_day_offering(
+    day_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_operator)
+):
+    org_id = current_user.organization_id
+    fest_day = db.query(FestivalDay).filter(FestivalDay.id == day_id, FestivalDay.organization_id == org_id).first()
+    if not fest_day:
+        raise HTTPException(status_code=404, detail="Festival day not found")
+
+    import uuid
+    offering = DayOffering(
+        id=str(uuid.uuid4()),
+        organization_id=org_id,
+        festival_day_id=day_id,
+        offering_type=payload["offering_type"],
+        session=payload.get("session"),
+        sponsor_name=payload["sponsor_name"],
+        sponsor_name_telugu=payload.get("sponsor_name_telugu"),
+        item_description=payload.get("item_description"),
+        item_description_telugu=payload.get("item_description_telugu"),
+        quantity=payload.get("quantity"),
+        unit=payload.get("unit"),
+        unit_telugu=payload.get("unit_telugu"),
+        cost_amount=payload.get("cost_amount"),
+        source_reference=payload.get("source_reference"),
+        notes=payload.get("notes"),
+        notes_telugu=payload.get("notes_telugu"),
+        review_status=payload.get("review_status", "CONFIRMED"),
+        display_order=int(payload.get("display_order", 0)),
+        is_published=bool(payload.get("is_published", True))
+    )
+    db.add(offering)
+    db.commit()
+    db.refresh(offering)
+
+    write_audit_log(
+        db,
+        org_id=org_id,
+        user_id=current_user.id,
+        action="CREATE_OFFERING",
+        entity_type="DayOffering",
+        entity_id=offering.id,
+        new_value={"sponsor_name": offering.sponsor_name, "offering_type": offering.offering_type}
+    )
+    public_cache.invalidate()
+
+    return offering
+
+@router.put("/offerings/{offering_id}")
+def update_day_offering(
+    offering_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_operator)
+):
+    org_id = current_user.organization_id
+    offering = db.query(DayOffering).filter(DayOffering.id == offering_id, DayOffering.organization_id == org_id).first()
+    if not offering:
+        raise HTTPException(status_code=404, detail="Offering not found")
+
+    prev_state = {
+        "sponsor_name": offering.sponsor_name,
+        "sponsor_name_telugu": offering.sponsor_name_telugu,
+        "review_status": offering.review_status
+    }
+
+    if "offering_type" in payload:
+        offering.offering_type = payload["offering_type"]
+    if "session" in payload:
+        offering.session = payload["session"]
+    if "sponsor_name" in payload:
+        offering.sponsor_name = payload["sponsor_name"]
+    if "sponsor_name_telugu" in payload:
+        offering.sponsor_name_telugu = payload["sponsor_name_telugu"]
+    if "item_description" in payload:
+        offering.item_description = payload["item_description"]
+    if "item_description_telugu" in payload:
+        offering.item_description_telugu = payload["item_description_telugu"]
+    if "quantity" in payload:
+        offering.quantity = payload["quantity"]
+    if "unit" in payload:
+        offering.unit = payload["unit"]
+    if "unit_telugu" in payload:
+        offering.unit_telugu = payload["unit_telugu"]
+    if "cost_amount" in payload:
+        offering.cost_amount = payload["cost_amount"]
+    if "notes" in payload:
+        offering.notes = payload["notes"]
+    if "notes_telugu" in payload:
+        offering.notes_telugu = payload["notes_telugu"]
+    if "review_status" in payload:
+        offering.review_status = payload["review_status"]
+    if "display_order" in payload:
+        offering.display_order = int(payload["display_order"])
+    if "is_published" in payload:
+        offering.is_published = bool(payload["is_published"])
+
+    offering.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(offering)
+
+    write_audit_log(
+        db,
+        org_id=org_id,
+        user_id=current_user.id,
+        action="UPDATE_OFFERING",
+        entity_type="DayOffering",
+        entity_id=offering.id,
+        previous_value=prev_state,
+        new_value={"sponsor_name": offering.sponsor_name, "sponsor_name_telugu": offering.sponsor_name_telugu, "review_status": offering.review_status}
+    )
+    public_cache.invalidate()
+
+    return offering
+
+@router.delete("/offerings/{offering_id}")
+def delete_day_offering(
+    offering_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_operator)
+):
+    org_id = current_user.organization_id
+    offering = db.query(DayOffering).filter(DayOffering.id == offering_id, DayOffering.organization_id == org_id).first()
+    if not offering:
+        raise HTTPException(status_code=404, detail="Offering not found")
+
+    deleted_info = {
+        "sponsor_name": offering.sponsor_name,
+        "offering_type": offering.offering_type,
+        "festival_day_id": offering.festival_day_id
+    }
+    db.delete(offering)
+    db.commit()
+
+    write_audit_log(
+        db,
+        org_id=org_id,
+        user_id=current_user.id,
+        action="DELETE_OFFERING",
+        entity_type="DayOffering",
+        entity_id=offering_id,
+        previous_value=deleted_info
+    )
+    public_cache.invalidate()
+
+    return {"message": "Offering deleted successfully"}
+
+@router.post("/offerings/bulk-morning-prasadam")
+def bulk_assign_morning_prasadam(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_only)
+):
+    """
+    Fast helper action to assign confirmed/reviewed morning prasadam across all 10 alankaram days (Days 1 to 10).
+    Strictly preserves Day 0 (arrival) and Day 11 (conclusion).
+    """
+    org_id = current_user.organization_id
+    sponsor_name = payload.get("sponsor_name", "Suragani Venkatavaraprasad Anjaneyulu garla dampathulu")
+    sponsor_name_telugu = payload.get("sponsor_name_telugu", "సూరగాని వెంకటవరప్రసాద్ ఆంజనేయులు గార్ల దంపతులు")
+    review_status = payload.get("review_status", "CONFIRMED")
+    notes = payload.get("notes", "Assigned via Committee Bulk Morning Prasadam Tool.")
+    notes_telugu = payload.get("notes_telugu", "కమిటీ ఉదయం ప్రసాద వితరణ బల్క్ టూల్ ద్వారా నమోదు చేయబడింది.")
+
+    # Fetch Days 1 to 10
+    days = db.query(FestivalDay).filter(
+        FestivalDay.organization_id == org_id,
+        FestivalDay.day_number >= 1,
+        FestivalDay.day_number <= 10
+    ).order_by(FestivalDay.day_number.asc()).all()
+
+    import uuid
+    updated_count = 0
+    created_count = 0
+
+    for d in days:
+        # Check if morning prasadam offering already exists
+        existing = db.query(DayOffering).filter(
+            DayOffering.festival_day_id == d.id,
+            DayOffering.organization_id == org_id,
+            DayOffering.offering_type == "MORNING_PRASADAM"
+        ).first()
+
+        prev_info = None
+        if existing:
+            prev_info = {"sponsor_name": existing.sponsor_name, "sponsor_name_telugu": existing.sponsor_name_telugu}
+            existing.sponsor_name = sponsor_name
+            existing.sponsor_name_telugu = sponsor_name_telugu
+            existing.review_status = review_status
+            existing.notes = notes
+            existing.notes_telugu = notes_telugu
+            existing.is_published = True
+            existing.updated_at = datetime.utcnow()
+            offering_id = existing.id
+            updated_count += 1
+        else:
+            offering = DayOffering(
+                id=str(uuid.uuid4()),
+                organization_id=org_id,
+                festival_day_id=d.id,
+                offering_type="MORNING_PRASADAM",
+                session="MORNING",
+                sponsor_name=sponsor_name,
+                sponsor_name_telugu=sponsor_name_telugu,
+                item_description="Daily Morning Prasadam",
+                item_description_telugu="ఉదయం నిత్య ప్రసాద వితరణ",
+                review_status=review_status,
+                notes=notes,
+                notes_telugu=notes_telugu,
+                display_order=1,
+                is_published=True
+            )
+            db.add(offering)
+            offering_id = offering.id
+            created_count += 1
+
+        write_audit_log(
+            db,
+            org_id=org_id,
+            user_id=current_user.id,
+            action="BULK_ASSIGN_MORNING_PRASADAM",
+            entity_type="DayOffering",
+            entity_id=offering_id,
+            previous_value=prev_info,
+            new_value={
+                "day_number": d.day_number,
+                "date": d.date,
+                "sponsor_name": sponsor_name,
+                "sponsor_name_telugu": sponsor_name_telugu,
+                "review_status": review_status
+            }
+        )
+
+    db.commit()
+    public_cache.invalidate()
+
+    return {
+        "message": f"Successfully updated morning prasadam for {updated_count + created_count} days (Days 1 to 10).",
+        "updated": updated_count,
+        "created": created_count,
+        "sponsor_name": sponsor_name,
+        "sponsor_name_telugu": sponsor_name_telugu,
+        "review_status": review_status
+    }
+

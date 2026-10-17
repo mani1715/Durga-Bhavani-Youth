@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.models.db_models import (
     Organization, Event, FestivalDay, ProgrammeActivity, 
     PoojaCouple, DayPhoto, Announcement, Sponsor, Receipt, Donor,
-    MaterialContribution, DonationCategory, DayPujaMaterial
+    MaterialContribution, DonationCategory, DayPujaMaterial, DayOffering
 )
 from app.models.schemas import (
     FestivalDaySchema, DayPhotoSchema, AnnouncementSchema, 
@@ -159,6 +159,11 @@ def get_today_programme(db: Session = Depends(get_db)):
         DayPujaMaterial.is_published == True
     ).order_by(DayPujaMaterial.display_order.asc(), DayPujaMaterial.created_at.asc()).all()
 
+    offerings = db.query(DayOffering).filter(
+        DayOffering.festival_day_id == target_day.id,
+        DayOffering.is_published == True
+    ).order_by(DayOffering.display_order.asc(), DayOffering.created_at.asc()).all()
+
     res = {
         "status_phase": status_phase,
         "current_date": today_str,
@@ -219,6 +224,28 @@ def get_today_programme(db: Session = Depends(get_db)):
                     "provided_by": m.provided_by,
                     "display_order": m.display_order
                 } for m in puja_materials
+            ],
+            "offerings": [
+                {
+                    "id": o.id,
+                    "festival_day_id": o.festival_day_id,
+                    "offering_type": o.offering_type,
+                    "session": o.session,
+                    "sponsor_name": o.sponsor_name,
+                    "sponsor_name_telugu": o.sponsor_name_telugu,
+                    "item_description": o.item_description,
+                    "item_description_telugu": o.item_description_telugu,
+                    "quantity": o.quantity,
+                    "unit": o.unit,
+                    "unit_telugu": o.unit_telugu,
+                    "cost_amount": float(o.cost_amount) if o.cost_amount is not None else None,
+                    "source_reference": o.source_reference,
+                    "notes": o.notes,
+                    "notes_telugu": o.notes_telugu,
+                    "review_status": o.review_status,
+                    "display_order": o.display_order,
+                    "is_published": o.is_published
+                } for o in offerings
             ]
         }
     }
@@ -275,11 +302,21 @@ def get_all_festival_days(db: Session = Depends(get_db)):
     for m in all_materials:
         materials_by_day[m.festival_day_id].append(m)
 
+    offerings_by_day = defaultdict(list)
+
+    all_offerings = db.query(DayOffering).filter(
+        DayOffering.festival_day_id.in_(day_ids),
+        DayOffering.is_published == True
+    ).order_by(DayOffering.display_order.asc(), DayOffering.created_at.asc()).all()
+    for o in all_offerings:
+        offerings_by_day[o.festival_day_id].append(o)
+
     output = []
     for d in days:
         activities = activities_by_day.get(d.id, [])
         couples = couples_by_day.get(d.id, [])
         materials = materials_by_day.get(d.id, [])
+        offerings = offerings_by_day.get(d.id, [])
 
         output.append({
             "id": d.id,
@@ -337,6 +374,28 @@ def get_all_festival_days(db: Session = Depends(get_db)):
                     "provided_by": m.provided_by,
                     "display_order": m.display_order
                 } for m in materials
+            ],
+            "offerings": [
+                {
+                    "id": o.id,
+                    "festival_day_id": o.festival_day_id,
+                    "offering_type": o.offering_type,
+                    "session": o.session,
+                    "sponsor_name": o.sponsor_name,
+                    "sponsor_name_telugu": o.sponsor_name_telugu,
+                    "item_description": o.item_description,
+                    "item_description_telugu": o.item_description_telugu,
+                    "quantity": o.quantity,
+                    "unit": o.unit,
+                    "unit_telugu": o.unit_telugu,
+                    "cost_amount": float(o.cost_amount) if o.cost_amount is not None else None,
+                    "source_reference": o.source_reference,
+                    "notes": o.notes,
+                    "notes_telugu": o.notes_telugu,
+                    "review_status": o.review_status,
+                    "display_order": o.display_order,
+                    "is_published": o.is_published
+                } for o in offerings
             ]
         })
 

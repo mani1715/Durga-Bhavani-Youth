@@ -5,7 +5,7 @@ import {
   Clock, Heart,
   ChevronRight, X, Image as ImageIcon,
   Menu, Sun, MapPin, CheckCircle2,
-  ArrowRight, Sparkles
+  ArrowRight, Sparkles, Gift, Utensils, Music
 } from 'lucide-react';
 import { 
   type Language, 
@@ -60,6 +60,27 @@ interface DayPujaMaterial {
   display_order: number;
 }
 
+interface DayOffering {
+  id: string;
+  festival_day_id: string;
+  offering_type: 'MORNING_PUJA' | 'MORNING_PRASADAM' | 'EVENING_PUJA' | 'EVENING_PRASADAM' | 'LUCKY_DIP' | 'SPECIAL_PROGRAMME';
+  session?: string | null;
+  sponsor_name: string;
+  sponsor_name_telugu?: string | null;
+  item_description?: string | null;
+  item_description_telugu?: string | null;
+  quantity?: string | null;
+  unit?: string | null;
+  unit_telugu?: string | null;
+  cost_amount?: number | null;
+  source_reference?: string | null;
+  notes?: string | null;
+  notes_telugu?: string | null;
+  review_status?: string | null;
+  display_order: number;
+  is_published: boolean;
+}
+
 interface FestivalDay {
   id: string;
   day_number: number;
@@ -72,6 +93,7 @@ interface FestivalDay {
   activities: ProgrammeActivity[];
   pooja_couples: PoojaCouple[];
   puja_materials?: DayPujaMaterial[];
+  offerings?: DayOffering[];
 }
 
 interface TodayProgrammeData {
@@ -483,6 +505,130 @@ export const LandingPage: React.FC = () => {
       }
     });
   }
+
+  const renderFestivalOfferings = (
+    offerings: DayOffering[] = [],
+    currentLang: Language,
+    tDict: any,
+    isModal: boolean = false
+  ) => {
+    if (!offerings || offerings.length === 0) return null;
+
+    const morningPuja = offerings.filter(o => o.offering_type === 'MORNING_PUJA');
+    const morningPrasadam = offerings.filter(o => o.offering_type === 'MORNING_PRASADAM');
+    const eveningPuja = offerings.filter(o => o.offering_type === 'EVENING_PUJA');
+    const eveningPrasadam = offerings.filter(o => o.offering_type === 'EVENING_PRASADAM');
+    const luckyDip = offerings.filter(o => o.offering_type === 'LUCKY_DIP');
+    const specialProg = offerings.filter(o => o.offering_type === 'SPECIAL_PROGRAMME');
+
+    const sections = [
+      {
+        key: 'morningPuja',
+        title: tDict.today.offeringsSections.morningPuja,
+        icon: <Sparkles className="h-4 w-4 text-amber-700" />,
+        items: morningPuja
+      },
+      {
+        key: 'morningPrasadam',
+        title: tDict.today.offeringsSections.morningPrasadam,
+        icon: <Utensils className="h-4 w-4 text-emerald-700" />,
+        items: morningPrasadam
+      },
+      {
+        key: 'eveningPuja',
+        title: tDict.today.offeringsSections.eveningPuja,
+        icon: <Heart className="h-4 w-4 text-rose-700" />,
+        items: eveningPuja
+      },
+      {
+        key: 'eveningPrasadam',
+        title: tDict.today.offeringsSections.eveningPrasadam,
+        icon: <Utensils className="h-4 w-4 text-orange-700" />,
+        items: eveningPrasadam
+      },
+      {
+        key: 'luckyDip',
+        title: tDict.today.offeringsSections.luckyDip,
+        icon: <Gift className="h-4 w-4 text-purple-700" />,
+        items: luckyDip
+      },
+      {
+        key: 'specialProg',
+        title: tDict.today.offeringsSections.specialProgramme,
+        icon: <Music className="h-4 w-4 text-indigo-700" />,
+        items: specialProg
+      }
+    ];
+
+    const activeSections = sections.filter(s => s.items.length > 0);
+    if (activeSections.length === 0) return null;
+
+    return (
+      <div className="space-y-4 pt-4 border-t border-amber-200/70">
+        <div className="flex items-center justify-between">
+          <h4 className={`${isModal ? 'text-sm font-semibold' : 'text-base sm:text-lg font-medium'} text-slate-900 flex items-center gap-2`}>
+            <span>{currentLang === 'te' ? 'పూజలు, ప్రసాదములు & బహుమతులు' : 'Pujas, Prasadam & Offerings'}</span>
+          </h4>
+        </div>
+
+        <div className={`grid grid-cols-1 ${isModal ? 'sm:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'} gap-3.5`}>
+          {activeSections.map(sec => (
+            <div 
+              key={sec.key}
+              className="p-3.5 sm:p-4 rounded-2xl bg-white border border-stone-200/90 shadow-2xs space-y-2.5 flex flex-col justify-between"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 border-b border-stone-100 pb-2">
+                  {sec.icon}
+                  <span className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug">
+                    {sec.title}
+                  </span>
+                  <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
+                    {sec.items.length}
+                  </span>
+                </div>
+
+                <ul className="space-y-2">
+                  {sec.items.map(item => {
+                    const sponsorDisp = getLocalizedText(currentLang, item.sponsor_name_telugu, item.sponsor_name);
+                    const itemDisp = getLocalizedText(currentLang, item.item_description_telugu, item.item_description);
+                    const unitDisp = getLocalizedText(currentLang, item.unit_telugu, item.unit);
+                    const notesDisp = getLocalizedText(currentLang, item.notes_telugu, item.notes);
+
+                    return (
+                      <li key={item.id} className="p-2.5 rounded-xl bg-amber-50/40 border border-amber-100/80 space-y-1 text-xs sm:text-sm break-words">
+                        <div className="font-medium text-slate-900 flex items-start gap-1.5 leading-snug">
+                          <span className="text-amber-600 shrink-0 select-none mt-0.5">✦</span>
+                          <span className="break-words min-w-0">{sponsorDisp}</span>
+                        </div>
+
+                        {(itemDisp || item.quantity) && (
+                          <div className="text-[12px] text-amber-950 font-normal pl-4 flex flex-wrap gap-1.5 items-center break-words">
+                            {itemDisp && <span className="font-medium text-amber-900">{itemDisp}</span>}
+                            {item.quantity && (
+                              <span className="px-1.5 py-0.2 bg-amber-100/80 rounded border border-amber-200 text-amber-900 font-semibold text-[11px] shrink-0">
+                                {item.quantity} {unitDisp || ''}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {notesDisp && (
+                          <p className="text-[11px] text-slate-500 italic pl-4 leading-relaxed break-words">
+                            {notesDisp}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const phaseLabels = getPhaseLabels(todayData?.status_phase, lang);
 
@@ -906,6 +1052,9 @@ export const LandingPage: React.FC = () => {
                       </div>
                     )}
 
+                    {/* Six Distinct Programme & Offerings Sections */}
+                    {renderFestivalOfferings(todayData.day.offerings, lang, t, false)}
+
                   </div>
                 ) : (
                   <div className="p-8 rounded-3xl bg-stone-50 border border-stone-200 text-center space-y-3 shadow-xs">
@@ -1004,6 +1153,30 @@ export const LandingPage: React.FC = () => {
                           </p>
                         )}
                       </div>
+
+                      {/* Compact Offerings Highlights for Schedule Card */}
+                      {Array.isArray(day.offerings) && day.offerings.length > 0 && (
+                        <div className="pt-2 border-t border-stone-100 space-y-1.5 text-xs">
+                          {day.offerings.some(o => o.offering_type === 'MORNING_PRASADAM') && (
+                            <div className="flex items-start gap-1.5 text-slate-700 min-w-0">
+                              <span className="font-semibold text-emerald-800 shrink-0">🌾 {lang === 'te' ? 'ఉదయం ప్రసాదం:' : 'Morning Prasadam:'}</span>
+                              <span className="truncate min-w-0">{getLocalizedText(lang, day.offerings.find(o => o.offering_type === 'MORNING_PRASADAM')?.sponsor_name_telugu, day.offerings.find(o => o.offering_type === 'MORNING_PRASADAM')?.sponsor_name)}</span>
+                            </div>
+                          )}
+                          {day.offerings.some(o => o.offering_type === 'LUCKY_DIP') && (
+                            <div className="flex items-start gap-1.5 text-slate-700 min-w-0">
+                              <span className="font-semibold text-purple-800 shrink-0">🎁 {lang === 'te' ? 'లక్కీ డిప్:' : 'Lucky Dip:'}</span>
+                              <span className="truncate min-w-0">{day.offerings.filter(o => o.offering_type === 'LUCKY_DIP').map(o => `${o.quantity ? `${o.quantity} ` : ''}${getLocalizedText(lang, o.item_description_telugu, o.item_description)}`).join(', ')}</span>
+                            </div>
+                          )}
+                          {day.offerings.some(o => o.offering_type === 'SPECIAL_PROGRAMME') && (
+                            <div className="flex items-start gap-1.5 text-slate-700 min-w-0">
+                              <span className="font-semibold text-indigo-800 shrink-0">🎭 {lang === 'te' ? 'కార్యక్రమం:' : 'Event:'}</span>
+                              <span className="truncate min-w-0">{getLocalizedText(lang, day.offerings.find(o => o.offering_type === 'SPECIAL_PROGRAMME')?.item_description_telugu, day.offerings.find(o => o.offering_type === 'SPECIAL_PROGRAMME')?.item_description)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <button 
@@ -1851,14 +2024,14 @@ export const LandingPage: React.FC = () => {
               </div>
             )}
 
-            {/* Pooja Couples / Participants */}
-            <div className="space-y-2.5 pt-1">
-              <h4 className="text-sm font-medium text-slate-900 border-b border-stone-200 pb-1.5 uppercase tracking-normal">
-                {selectedDayModal.pooja_couples?.some(p => p.participant_type && p.participant_type !== 'COUPLE')
-                  ? t.modal.participantsHeading
-                  : t.modal.couplesHeading}
-              </h4>
-              {Array.isArray(selectedDayModal.pooja_couples) && selectedDayModal.pooja_couples.length > 0 ? (
+            {/* Pooja Couples / Participants (if legacy couples exist) */}
+            {Array.isArray(selectedDayModal.pooja_couples) && selectedDayModal.pooja_couples.length > 0 && (
+              <div className="space-y-2.5 pt-1">
+                <h4 className="text-sm font-medium text-slate-900 border-b border-stone-200 pb-1.5 uppercase tracking-normal">
+                  {selectedDayModal.pooja_couples?.some(p => p.participant_type && p.participant_type !== 'COUPLE')
+                    ? t.modal.participantsHeading
+                    : t.modal.couplesHeading}
+                </h4>
                 <ul className="space-y-2">
                   {selectedDayModal.pooja_couples.map(pc => {
                     const displayName = lang === 'te'
@@ -1873,10 +2046,11 @@ export const LandingPage: React.FC = () => {
                     );
                   })}
                 </ul>
-              ) : (
-                <p className="text-xs sm:text-sm text-stone-500 italic">{t.modal.couplesPending}</p>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* Six Distinct Programme & Offerings Sections */}
+            {renderFestivalOfferings(selectedDayModal.offerings, lang, t, true)}
 
             <button
               onClick={() => setSelectedDayModal(null)}

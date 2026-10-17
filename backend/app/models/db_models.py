@@ -330,6 +330,7 @@ class FestivalDay(Base):
     activities = relationship("ProgrammeActivity", back_populates="festival_day", cascade="all, delete-orphan", order_by="ProgrammeActivity.display_order.asc()")
     pooja_couples = relationship("PoojaCouple", back_populates="festival_day", cascade="all, delete-orphan", order_by="PoojaCouple.display_order.asc()")
     puja_materials = relationship("DayPujaMaterial", back_populates="festival_day", cascade="all, delete-orphan", order_by="DayPujaMaterial.display_order.asc()")
+    offerings = relationship("DayOffering", back_populates="festival_day", cascade="all, delete-orphan", order_by="DayOffering.display_order.asc()")
     photos = relationship("DayPhoto", back_populates="festival_day")
 
 
@@ -408,7 +409,33 @@ class DayPujaMaterial(Base):
     festival_day = relationship("FestivalDay", back_populates="puja_materials")
     activity = relationship("ProgrammeActivity", back_populates="puja_materials")
 
+class DayOffering(Base):
+    __tablename__ = "day_offerings"
 
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    festival_day_id = Column(String(36), ForeignKey("festival_days.id", ondelete="CASCADE"), nullable=False)
+    offering_type = Column(String(50), nullable=False)  # MORNING_PUJA, MORNING_PRASADAM, EVENING_PUJA, EVENING_PRASADAM, LUCKY_DIP, SPECIAL_PROGRAMME
+    session = Column(String(20), nullable=True)         # MORNING, EVENING, AFTERNOON, ALL_DAY
+    sponsor_name = Column(String(255), nullable=False)
+    sponsor_name_telugu = Column(String(255), nullable=True)
+    item_description = Column(String(255), nullable=True)
+    item_description_telugu = Column(String(255), nullable=True)
+    quantity = Column(String(100), nullable=True)
+    unit = Column(String(50), nullable=True)
+    unit_telugu = Column(String(50), nullable=True)
+    cost_amount = Column(Numeric(12, 2), nullable=True)
+    source_reference = Column(String(100), nullable=True)
+    notes = Column(Text, nullable=True)
+    notes_telugu = Column(Text, nullable=True)
+    review_status = Column(String(50), default="CONFIRMED")  # CONFIRMED, NEEDS_REVIEW
+    display_order = Column(Integer, default=0)
+    is_published = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    organization = relationship("Organization")
+    festival_day = relationship("FestivalDay", back_populates="offerings")
 
 class DayPhoto(Base):
     __tablename__ = "day_photos"

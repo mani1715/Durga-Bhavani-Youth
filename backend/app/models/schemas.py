@@ -393,6 +393,69 @@ class DayPujaMaterialUpdateSchema(BaseModel):
     display_order: Optional[int] = None
     is_published: Optional[bool] = None
 
+class DayOfferingSchema(BaseModel):
+    id: str
+    organization_id: Optional[str] = None
+    festival_day_id: str
+    offering_type: str
+    session: Optional[str] = None
+    sponsor_name: str
+    sponsor_name_telugu: Optional[str] = None
+    item_description: Optional[str] = None
+    item_description_telugu: Optional[str] = None
+    quantity: Optional[str] = None
+    unit: Optional[str] = None
+    unit_telugu: Optional[str] = None
+    cost_amount: Optional[Decimal] = None
+    source_reference: Optional[str] = None
+    notes: Optional[str] = None
+    notes_telugu: Optional[str] = None
+    review_status: Optional[str] = "CONFIRMED"
+    display_order: int = 0
+    is_published: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class DayOfferingCreateSchema(BaseModel):
+    festival_day_id: str
+    offering_type: str
+    session: Optional[str] = None
+    sponsor_name: str
+    sponsor_name_telugu: Optional[str] = None
+    item_description: Optional[str] = None
+    item_description_telugu: Optional[str] = None
+    quantity: Optional[str] = None
+    unit: Optional[str] = None
+    unit_telugu: Optional[str] = None
+    cost_amount: Optional[Decimal] = None
+    source_reference: Optional[str] = None
+    notes: Optional[str] = None
+    notes_telugu: Optional[str] = None
+    review_status: Optional[str] = "CONFIRMED"
+    display_order: Optional[int] = 0
+    is_published: Optional[bool] = True
+
+class DayOfferingUpdateSchema(BaseModel):
+    offering_type: Optional[str] = None
+    session: Optional[str] = None
+    sponsor_name: Optional[str] = None
+    sponsor_name_telugu: Optional[str] = None
+    item_description: Optional[str] = None
+    item_description_telugu: Optional[str] = None
+    quantity: Optional[str] = None
+    unit: Optional[str] = None
+    unit_telugu: Optional[str] = None
+    cost_amount: Optional[Decimal] = None
+    source_reference: Optional[str] = None
+    notes: Optional[str] = None
+    notes_telugu: Optional[str] = None
+    review_status: Optional[str] = None
+    display_order: Optional[int] = None
+    is_published: Optional[bool] = None
+
 class FestivalDaySchema(BaseModel):
     id: str
     date: str
@@ -406,6 +469,7 @@ class FestivalDaySchema(BaseModel):
     activities: List[ProgrammeActivitySchema] = []
     pooja_couples: List[PoojaCoupleSchema] = []
     puja_materials: List[DayPujaMaterialSchema] = []
+    offerings: List[DayOfferingSchema] = []
 
     class Config:
         from_attributes = True
