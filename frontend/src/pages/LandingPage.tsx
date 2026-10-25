@@ -1848,11 +1848,11 @@ export const LandingPage: React.FC = () => {
 
           </div>
 
-          {/* Discreet Footer Bottom Bar with MSPN DEV Credit & Committee Login */}
+          {/* Discreet Footer Bottom Bar with METECCHQ Credit & Committee Login */}
           <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-stone-400 font-normal">
             <p className="text-center md:text-left">{t.footer.rights}</p>
             
-            {/* MSPN DEV Credit Trigger Button */}
+            {/* METECCHQ Credit Trigger Button */}
             <div className="text-center">
               <button
                 ref={developerTriggerRef}
@@ -2094,7 +2094,7 @@ export const LandingPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-          MODAL 3: ABOUT MSPN DEV (COMPANY PRESENTATION)
+          MODAL 3: ABOUT METECCHQ (COMPANY PRESENTATION)
           ========================================================================= */}
       {developerModalOpen && (
         <div 
